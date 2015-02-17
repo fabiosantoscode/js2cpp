@@ -1,0 +1,21 @@
+{
+  "name": "js2c",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "WTFPL",
+  "dependencies": {
+    "coffee": "^1.0.0",
+    "coffee-script": "^1.9.0",
+    "escodegen": "^1.6.1",
+    "escope": "^2.0.4",
+    "esprima": "^2.0.0",
+    "estraverse": "^1.9.1",
+    "event-stream": "^3.2.2",
+    "tern": "^0.8.0"
+  }
+}
