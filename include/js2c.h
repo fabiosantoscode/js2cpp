@@ -14,12 +14,13 @@ class Console {
         log(rest...);
     }
     static void log(std::string only) {
-        printf("%s\\n", only.c_str());
+        printf("%s\n", only.c_str());
     }
     template<typename T>
     static void log(T t) {
-        printf("%s\\n", std::to_string(t).c_str());
+        printf("%s\n", std::to_string(t).c_str());
     }
 };
 
 Console console;
+
