@@ -162,6 +162,8 @@ formatters =
     FunctionDeclaration: (node) ->
         params = format_params node.params
         return_type = format_type node.kind.retval.getType(false)
+        if node.id.name is 'main' and return_type is 'double'
+            return_type = 'int'
         RAW_C "#{return_type} #{node.id.name}
             (#{params})
             #{gen format node.body}"
@@ -196,14 +198,16 @@ format_type = (type) ->
 format_decl = (type, name) ->
     assert name, 'format_decl called without a name!'
     if type instanceof tern.Fn
-        ret = format_type type.retval.getType(false)
+        ret_type = format_type type.retval.getType(false)
+        if name is 'main'
+            ret_type = 'int'
         if type.args.length
             arg_decls = (
                 format_decl type.args[i].getType(false), type.argNames[i] for i in [0..type.args.length-1])
         else
             arg_decls = [] 
         # Declaring a function pointer: void(*foo)(int bar)
-        return "#{ret}(*#{name})(#{arg_decls.join(', ')})"
+        return "#{ret_type}(*#{name})(#{arg_decls.join(', ')})"
     else
         return "#{format_type type} #{name}" 
 
