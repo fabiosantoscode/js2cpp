@@ -154,8 +154,10 @@ formatters =
         decl = node.declarations[0]
         sides = [
             "#{format_decl node.kind, decl.id.name}"]
+        semicolon = ';'
+        semicolon = '' if node.parent.type is 'ForStatement'
         if decl.init
-            sides.push "#{gen format decl.init}"
+            sides.push "#{gen format decl.init}#{semicolon}"
         RAW_C sides.join ' = '
     FunctionDeclaration: (node) ->
         params = format_params node.params
