@@ -150,6 +150,8 @@ formatters =
     ArrayExpression: (node) ->
         items = ("#{gen format item}" for item in node.elements)
         RAW_C "{ #{items.join ', '} }"
+    ObjectExpression: (node) ->
+        RAW_C 'empty_object'
     VariableDeclaration: (node) ->
         decl = node.declarations[0]
         sides = [
@@ -187,11 +189,40 @@ format_type = (type) ->
             (*)
             (#{arg_types.join(', ')})"
         return type.toString()
+
+    if type instanceof tern.Obj
+        return make_fake_class type
+
     return {
         string: 'std::string'
         number: 'double'
         undefined: 'void'
     }[type_name] or assert false, "unknown type #{type_name}"
+
+
+_fake_classes = []
+make_fake_class = (type) ->
+    assert type instanceof tern.Obj
+
+    name = 'FakeClass_' + _fake_classes.length
+
+    _fake_classes.push({ name: name })
+
+    class_decls = (format_decl(type.props[prop].getType(false), prop) for prop in Object.keys type.props)
+
+    class_body = class_decls.join(';\n    ')
+
+    if class_decls.length
+        class_body += ';'
+
+    to_put_before.body.push(RAW_C("
+        struct #{name}:public FKClass {
+            #{class_body}
+            #{name}(EmptyObject _){}
+        };\n
+    "))
+
+    return name
 
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
@@ -213,15 +244,21 @@ format_decl = (type, name) ->
 
 ctx = new tern.Context
 
+to_put_before = undefined
 module.exports = (js) ->
     tern.withContext ctx, () ->
+        to_put_before =
+            type: 'Program'
+            body: []
         ast = tern.parse js
         ast = cleanup ast
         tern.analyze ast
         annotate ast
         ast = cpp_types ast
         pseudo_c_ast = format ast
-        return gen pseudo_c_ast
+        before_c = gen(to_put_before)
+        c = gen(pseudo_c_ast)
+        return before_c + c
 
 
 ##############

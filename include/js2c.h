@@ -22,5 +22,13 @@ class Console {
     }
 };
 
+class EmptyObject {};
+
+class FKClass {
+    public:
+    FKClass(){}
+};
+
 Console console;
+EmptyObject empty_object;
 
