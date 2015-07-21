@@ -1,5 +1,6 @@
-
+assert = require 'assert'
 estraverse = require 'estraverse'
+make_fake_class = require './fake-classes'
 
 # Use c++ types
 # Places a "kind" property in nodes
@@ -28,7 +29,14 @@ cpp_types = (ast) ->
             if node.type is 'Identifier' && node.scope_at.hasProp(node.name)
                 node.kind = type_of node, node.name
             if node.type is 'ObjectExpression'
-                node.kind = type_of node, parent.id.name
+                if parent.type is 'VariableDeclarator'
+                    node.kind = type_of node, parent.id.name
+                else if parent.type is 'ReturnStatement'
+                    type = parent.func_at.kind.retval.getType(false)
+                    class_of = make_fake_class type
+                    node.kind = type
+                else
+                    assert false, 'object is in weird place, cannot find its kind'
             return node
 
 module.exports = cpp_types
