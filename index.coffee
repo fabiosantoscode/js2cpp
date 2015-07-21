@@ -6,12 +6,14 @@ escodegen = require 'escodegen'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
+cpp_types = require './cpp-types'
+
 # We'll need to generate some code. escodegen_options and RAW_C() allow us to generate raw C with escodegen.
 gen = (ast) ->
     assert ast, 'No AST!'
     escodegen.generate(ast, escodegen_options)
 
-# Annotate the AST with "func" properties which tell us what function a tree node belongs to
+# Annotate the AST with "func_at", "scope_at", "" properties which tell us what function a tree node belongs to
 annotate = (ast) ->
     cur_fun = null
     cur_var = null
@@ -25,13 +27,22 @@ annotate = (ast) ->
             node.cur_var = cur_var
             if node.type is 'VariableDeclaration'
                 cur_var = node
-            if node.type is 'FunctionDeclaration'
+            if node.type is 'FunctionDeclaration' or
+                    node.type is 'FunctionExpression'
                 cur_fun = node
                 cur_scope = node.body.scope or cur_scope
             return node
         leave: (node) ->
             if node.type is 'VariableDeclaration'
                 cur_var = null
+    return ast
+
+annotate_fake_classes = (ast) ->
+    estraverse.traverse ast,
+        enter: (node) ->
+            if node.type is 'ObjectExpression'
+                make_fake_class node.kind
+                return undefined
     return ast
 
 # These types are passed by value. All the others, by reference.
@@ -97,32 +108,6 @@ cleanup = (ast) ->
                 node.expression.type is 'Literal'
             return estraverse.VisitorOption.Remove
 
-# Use c++ types
-cpp_types = (ast) ->
-    type_of = (node, name) ->
-        node.scope_at.hasProp(name).getType(false)
-
-    retype_decl = (node) ->
-        decl = node.declarations[0]
-        if /^Function/.test decl.init.type
-            node.kind = decl.init.body.scope.fnType.getType(false)
-        else
-            node.kind = type_of node, decl.id.name
-
-    retype_fun = (node) ->
-        node.kind = node.body.scope.fnType.getType(false)
-        for param in node.params
-            param.kind = node.body.scope.hasProp(param.name).getType false
-
-    estraverse.replace ast,
-        enter: (node) ->
-            if node.type is 'VariableDeclaration'
-                retype_decl node
-            if node.type in ['FunctionDeclaration', 'FunctionExpression']
-                retype_fun node
-            return node
-
-
 #############
 # Formatting (outputing) our C++!
 
@@ -151,7 +136,32 @@ formatters =
         items = ("#{gen format item}" for item in node.elements)
         RAW_C "{ #{items.join ', '} }"
     ObjectExpression: (node) ->
-        RAW_C 'empty_object'
+        if !node.properties.length
+            return RAW_C 'empty_object'
+
+        fake_class = make_fake_class node.kind
+
+        names_initting = (prop.key.name for prop in node.properties)
+        missing_names = fake_class.properties.slice()
+
+        values_initting = {}
+        for prop in node.properties
+            missing_names.splice(missing_names.indexOf(prop.key.name), 1)
+            values_initting[prop.key.name] = prop.value
+
+        constructor_arguments = []
+
+        for name in fake_class.properties
+            if name in missing_names
+                type = fake_class.types_by_property[name]
+                if type.name is 'string'
+                    constructor_arguments.push 'std::string("")'
+                if type.name is 'number'
+                    constructor_arguments.push '0.0'
+            if name in names_initting
+                constructor_arguments.push(gen values_initting[name])
+
+        return RAW_C "#{ fake_class.name }(#{ constructor_arguments })"
     VariableDeclaration: (node) ->
         decl = node.declarations[0]
         sides = [
@@ -191,7 +201,7 @@ format_type = (type) ->
         return type.toString()
 
     if type instanceof tern.Obj
-        return make_fake_class type
+        return make_fake_class(type).name
 
     return {
         string: 'std::string'
@@ -204,25 +214,57 @@ _fake_classes = []
 make_fake_class = (type) ->
     assert type instanceof tern.Obj
 
+    if type.fake_class
+        return type.fake_class.name
+
+    class_decls = ([type.props[prop].getType(false), prop] for prop in Object.keys type.props)
+
+    class_decls = class_decls.sort (a, b) ->
+        if a[1] > b[1]
+            return 1
+        return -1
+
+    decl_strings = class_decls.map(([type, prop]) -> format_decl(type, prop))
+
+    # avoiding duplicate classes
+    for cls in _fake_classes
+        if cls.decl_strings.join(';') == decl_strings.join(';')
+            return cls
+
     name = 'FakeClass_' + _fake_classes.length
 
-    _fake_classes.push({ name: name })
-
-    class_decls = (format_decl(type.props[prop].getType(false), prop) for prop in Object.keys type.props)
-
-    class_body = class_decls.join(';\n    ')
+    class_body = decl_strings.join(';\n    ')
 
     if class_decls.length
         class_body += ';'
 
-    to_put_before.body.push(RAW_C("
+    constructor_signature = decl_strings.join(', ')
+    constructor_initters = (
+        "#{prop}(#{prop})" for [type, prop] in class_decls
+    ).join(',')
+
+    to_put_before.body.push RAW_C """
         struct #{name}:public FKClass {
             #{class_body}
             #{name}(EmptyObject _){}
-        };\n
-    "))
+            #{name}(#{constructor_signature}):#{constructor_initters} {}
+        };\n\n
+    """
 
-    return name
+    properties = class_decls.map((decl) -> decl[1]).sort()
+
+    types_by_property = {}
+
+    for prop in properties
+        types_by_property[prop] = class_decls.filter(([type, _prop]) -> _prop == prop)[0][0]
+
+    fake_class = { name: name, decls: class_decls, decl_strings: decl_strings, properties: properties, types_by_property: types_by_property }
+
+    type.fake_class = fake_class
+
+    _fake_classes.push(fake_class)
+
+    return fake_class
 
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
@@ -255,6 +297,7 @@ module.exports = (js) ->
         tern.analyze ast
         annotate ast
         ast = cpp_types ast
+        annotate_fake_classes ast
         pseudo_c_ast = format ast
         before_c = gen(to_put_before)
         c = gen(pseudo_c_ast)
