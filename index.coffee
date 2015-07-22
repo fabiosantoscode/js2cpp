@@ -5,33 +5,41 @@ tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
+{ needs_closure } = require './queries'
 { format } = require('./format')
 { gen } = require('./gen')
-make_fake_class = require './fake-classes'
+{ make_fake_class } = require './fake-classes'
 cpp_types = require './cpp-types'
 
 # Annotate the AST with "func_at", "scope_at", "" properties which tell us what function a tree node belongs to
 annotate = (ast) ->
-    cur_fun = null
-    cur_var = null
-    cur_scope = tern.cx().topScope
+    fun_stack = []
+    var_stack = []
+    scope_stack = [tern.cx().topScope]
+    cur_fun = () -> fun_stack[fun_stack.length - 1]
+    cur_var = () -> var_stack[var_stack.length - 1]
+    cur_scope = () -> scope_stack[scope_stack.length - 1]
     estraverse.traverse ast,
         enter: (node, parent) ->
-            node.func_at = cur_fun
+            node.func_at = cur_fun()
             Object.defineProperty node, 'parent',
                 enumerable: false, get: () -> parent
-            node.scope_at = cur_scope
-            node.cur_var = cur_var
+            node.scope_at = cur_scope()
+            node.cur_var = cur_var()
             if node.type is 'VariableDeclaration'
-                cur_var = node
+                var_stack.push node
             if node.type is 'FunctionDeclaration' or
                     node.type is 'FunctionExpression'
-                cur_fun = node
-                cur_scope = node.body.scope or cur_scope
+                fun_stack.push node
+                scope_stack.push(node.body.scope or cur_scope())
+                node.closure = cur_scope()
             return node
         leave: (node) ->
             if node.type is 'VariableDeclaration'
-                cur_var = null
+                var_stack.pop()
+            if node.type in ['FunctionExpression', 'FunctionDeclaration']
+                fun_stack.pop()
+                scope_stack.pop()
     return ast
 
 annotate_fake_classes = (ast) ->
@@ -120,7 +128,7 @@ module.exports = (js) ->
         ast = cpp_types ast
         annotate_fake_classes ast
         pseudo_c_ast = format ast
-        before_c = global.to_put_before.join '\n\n'
+        before_c = (global.to_put_before.join '\n') + '\n\n'
         c = gen(pseudo_c_ast)
         return before_c + c
 

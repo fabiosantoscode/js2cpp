@@ -52,8 +52,8 @@ formatters =
         if !node.properties.length
             return RAW_C 'empty_object'
 
-        make_fake_class = require './fake-classes'
-        fake_class = make_fake_class node.kind
+        { make_fake_class } = require './fake-classes'
+        fake_class = make_fake_class node.kind, { assert_exists: true }
 
         names_initting = (prop.key.name for prop in node.properties)
         missing_names = fake_class.properties.slice()
@@ -104,8 +104,6 @@ format_params = (params) ->
 # Formats a type.
 # Examples: "number" -> "int", "undefined" -> "void"
 format_type = (type) ->
-    type_name = type or 'undefined'
-
     if type instanceof tern.Fn
         ret_type = type.retval.getType()
         arg_types = type.args.map (arg) -> 'ARG_TYPE_OF'+arg
@@ -120,14 +118,17 @@ format_type = (type) ->
         return "BoxArray"
 
     if type instanceof tern.Obj
-        make_fake_class = require './fake-classes'
-        return make_fake_class(type).name
+        { make_fake_class } = require './fake-classes'
+        return make_fake_class(type, { assert_exists: true }).name
+
+    type_name = type or 'undefined'
 
     return {
         string: 'std::string'
         number: 'double'
         undefined: 'void'
     }[type_name] or assert false, "unknown type #{type_name}"
+
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
 format_decl = (type, name) ->
@@ -145,5 +146,10 @@ format_decl = (type, name) ->
         return "#{ret_type}(*#{name})(#{arg_decls.join(', ')})"
     else
         return "#{format_type type} #{name}" 
+
+# indent all but the first line by 4 spaces
+indent_tail = (s) ->
+    indent_arr = ([first, rest...]) -> [first].concat('    ' + line for line in rest)
+    indent_arr(s.split('\n')).join('\n')
 
 module.exports = { format_decl, formatters, format_type, format, format_params }

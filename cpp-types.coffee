@@ -1,6 +1,6 @@
 assert = require 'assert'
 estraverse = require 'estraverse'
-make_fake_class = require './fake-classes'
+{ make_fake_class } = require './fake-classes'
 
 # Use c++ types
 # Places a "kind" property in nodes
