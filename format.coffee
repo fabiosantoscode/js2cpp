@@ -94,7 +94,7 @@ formatters =
             (#{params})
             #{gen format node.body}"
     FunctionExpression: (node) ->
-        RAW_C "[&](#{format_params node.params})
+        RAW_C indent_tail "[&](#{format_params node.params})
             -> #{format_type node.kind.retval.getType(false)}
             #{gen format node.body}"
 
