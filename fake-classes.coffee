@@ -12,7 +12,7 @@ _fake_class_exists = ({ decl_strings }) ->
             return cls
 
 
-create_fake_class = (type) ->
+_make_fake_class = (type) ->
     decls = ([type.props[prop].getType(false), prop] for prop in Object.keys type.props)
 
     decls = decls.sort (a, b) ->
@@ -39,7 +39,7 @@ create_fake_class = (type) ->
 make_fake_class = (type, { assert_exists } = {}) ->
     assert type instanceof tern.Obj
 
-    fake_class = create_fake_class(type)
+    fake_class = _make_fake_class(type)
     existing = _fake_class_exists fake_class
     if existing
         return existing

@@ -105,7 +105,7 @@ format_params = (params) ->
 # Examples: "number" -> "int", "undefined" -> "void"
 format_type = (type) ->
     if type instanceof tern.Fn
-        ret_type = type.retval.getType()
+        ret_type = type.retval.getType(false)
         arg_types = type.args.map (arg) -> 'ARG_TYPE_OF'+arg
         return "#{format_type ret_type}
             (*)
@@ -119,7 +119,7 @@ format_type = (type) ->
 
     if type instanceof tern.Obj
         { make_fake_class } = require './fake-classes'
-        return make_fake_class(type, { assert_exists: true }).name
+        return make_fake_class(type).name
 
     type_name = type or 'undefined'
 

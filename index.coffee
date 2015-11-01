@@ -1,6 +1,8 @@
 
 util = require 'util'
 assert = require 'assert'
+dumbjs = require 'dumbjs/index'
+bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
 es = require 'event-stream'
@@ -86,7 +88,6 @@ flatten = (ast) ->
         insertion.body.unshift decl
         return { type: 'Identifier', name: generated_name }
 
-    innermost_var = null
     estraverse.replace ast,
         leave: (node, parent) ->
             if node.type is 'VariableDeclaration'
@@ -113,15 +114,54 @@ cleanup = (ast) ->
                 node.expression.type is 'Literal'
             return estraverse.VisitorOption.Remove
 
+        if node.type is 'VariableDeclaration'
+            assert node.declarations.length is 1
+            if node.declarations[0].init?.type is 'FunctionExpression'
+                return {
+                    type: 'FunctionDeclaration',
+                    id: node.declarations[0].id,
+                    body: node.declarations[0].init.body,
+                    params: node.declarations[0].init.params,
+                }
 
+tell_tern_about_bind = (ctx) ->
+    topScope = ctx.topScope
 
-ctx = new tern.Context
+    bindProp = topScope.defProp('BIND')
+    bindFunc = new tern.Fn(
+        'BIND',      # fname
+        tern.ANull,  # this
+        [], # arguments. No arguments, hope that's ok with tern.
+        [],
+        new tern.Fn()  # the return type
+    )
+    bindProp.addType(bindFunc)
+
+    bindFunc.computeRet = (_self, [funcType, closureType], [funcNode, closureNode]) ->
+        funcType = funcType.getType(false)
+        closureType = closureType.getType(false)
+        funcType.args[0].addType(closureType)
+        assert funcType and closureType, 'call to BIND not made with predictable arguments!'
+
+        funcType = new tern.Fn(
+            'boundFn('+funcType.name+')',
+            tern.ANull,
+            funcType.args.slice(1),
+            funcType.argNames.slice(1),
+            funcType.retval
+        )
+
+        return funcType
+
 
 global.to_put_before = undefined
 module.exports = (js) ->
+    ctx = new tern.Context
     tern.withContext ctx, () ->
         global.to_put_before = []
-        ast = tern.parse js
+        js = dumbjs(js)
+        tell_tern_about_bind(ctx)
+        ast = tern.parse(js)
         ast = cleanup ast
         tern.analyze ast
         annotate ast
