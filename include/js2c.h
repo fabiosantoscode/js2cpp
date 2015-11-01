@@ -27,9 +27,9 @@ class Console {
     }
     static void log(double only) {
         if (only == (int)only) {
-            printf("%0.0f \n", only);
+            printf("%0.0f\n", only);
         } else {
-            printf("%f \n", only);
+            printf("%f\n", only);
         }
     }
     template<typename T>
