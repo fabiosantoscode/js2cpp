@@ -9,8 +9,8 @@
   "author": "",
   "license": "WTFPL",
   "dependencies": {
-    "coffee": "^1.0.0",
-    "coffee-script": "^1.9.0",
+    "coffee-script": "^1.10.0",
+    "dumbjs": "fabiosantoscode/dumbjs",
     "escodegen": "^1.6.1",
     "escope": "^2.0.4",
     "esprima": "^2.0.0",
