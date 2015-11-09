@@ -7,7 +7,6 @@ tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
-{ needs_closure } = require './queries'
 { format } = require('./format')
 { gen } = require('./gen')
 { make_fake_class } = require './fake-classes'
