@@ -84,15 +84,24 @@ formatters =
                 #{gen format node.body}"
 
         params = node.params
-        closure_name = params.shift()
-        closure_decl = format_decl closure_name.kind, closure_name.name
-        RAW_C """
-            struct #{node.id.name} {
-                #{closure_decl};
-                #{node.id.name}(#{closure_decl}):_closure(_closure) { }
-                #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
-            };
-        """
+        if /^_closure/.test(params[0].name)
+            closure_name = params.shift()
+            closure_decl = format_decl closure_name.kind, closure_name.name
+            return RAW_C """
+                struct #{node.id.name} {
+                    #{closure_decl};
+                    #{node.id.name}(#{closure_decl}):_closure(_closure) { }
+                    #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
+                };
+            """
+        else
+            # So yes. Every function except main needs to be a class
+            # This needs fixing.
+            return RAW_C """
+                struct #{node.id.name} {
+                    #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
+                }
+            """
 
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
