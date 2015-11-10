@@ -49,11 +49,6 @@ make_fake_class = (type, { assert_exists } = {}) ->
 
     { name, decl_strings, decls } = fake_class
 
-    constructor_signature = decl_strings.join(', ')
-    constructor_initters = (
-        "#{prop}(#{prop})" for [type, prop] in decls
-    ).join(',')
-
     class_body = decl_strings.join(';\n    ')
     if decls.length
         class_body += ';'
@@ -62,8 +57,8 @@ make_fake_class = (type, { assert_exists } = {}) ->
     to_put_before.push """
         struct #{name}:public FKClass {
             #{class_body}
+            #{name}(){}
             #{name}(EmptyObject _){}
-            #{name}(#{constructor_signature}):#{constructor_initters} {}
         };\n\n
     """
 

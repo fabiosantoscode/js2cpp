@@ -30,6 +30,10 @@ formatters =
             shorter_op = node.operator[0]  # For example, &= becomes &
             return RAW_C "(#{name} = (int)
                 #{name} #{shorter_op} #{gen format node.right})"
+    CallExpression: (node) ->
+        if node.callee.type is 'MemberExpression' and
+                /^_closure/.test(gen(node.callee))
+            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})"
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             RAW_C "std::string(#{gen node})"
@@ -86,17 +90,23 @@ formatters =
             sides.push "#{gen format decl.init}#{semicolon}"
         RAW_C sides.join ' = '
     FunctionDeclaration: (node) ->
-        params = format_params node.params
         return_type = format_type node.kind.retval.getType(false)
-        if node.id.name is 'main' and return_type is 'double'
+        if node.id.name is 'main'
             return_type = 'int'
-        RAW_C "#{return_type} #{node.id.name}
-            (#{params})
-            #{gen format node.body}"
-    FunctionExpression: (node) ->
-        RAW_C indent_tail "[&](#{format_params node.params})
-            -> #{format_type node.kind.retval.getType(false)}
-            #{gen format node.body}"
+            return RAW_C "#{return_type} #{node.id.name}
+                (#{format_params node.params})
+                #{gen format node.body}"
+
+        params = node.params
+        closure_name = params.shift()
+        closure_decl = format_decl closure_name.kind, closure_name.name
+        RAW_C """
+            struct #{node.id.name} {
+                #{closure_decl};
+                #{node.id.name}(#{closure_decl}):_closure(_closure) { }
+                #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
+            };
+        """
 
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
@@ -106,10 +116,13 @@ format_params = (params) ->
 format_type = (type) ->
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
-        arg_types = type.args.map (arg) -> 'ARG_TYPE_OF'+arg
-        return "#{format_type ret_type}
-            (*)
-            (#{arg_types.join(', ')})"
+        arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
+        if /^boundFn\(/.test(type.name)
+            functorName = type.name.replace(/^boundFn\((.*?)\)$/, '$1')
+            to_put_before.push("struct #{functorName};")
+            return functorName + ' *'
+        return "std::function<#{format_type ret_type}
+            (#{arg_types.join(', ')})>"
         return type.toString()
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
@@ -133,19 +146,7 @@ format_type = (type) ->
 # Examples: "int main", "(void)(func*)()", etc.
 format_decl = (type, name) ->
     assert name, 'format_decl called without a name!'
-    if type instanceof tern.Fn
-        ret_type = format_type type.retval.getType(false)
-        if name is 'main'
-            ret_type = 'int'
-        if type.args.length
-            arg_decls = (
-                format_decl type.args[i].getType(false), type.argNames[i] for i in [0..type.args.length-1])
-        else
-            arg_decls = [] 
-        # Declaring a function pointer: void(*foo)(int bar)
-        return "#{ret_type}(*#{name})(#{arg_decls.join(', ')})"
-    else
-        return "#{format_type type} #{name}" 
+    return [format_type(type), name].join(' ')
 
 # indent all but the first line by 4 spaces
 indent_tail = (s) ->

@@ -153,6 +153,19 @@ tell_tern_about_bind = (ctx) ->
         return funcType
 
 
+# deal with dumbjs's bindify
+bindify = (ast) ->
+    current_function = null
+    estraverse.replace ast, enter: (node, parent) ->
+        if node.type is 'CallExpression' and node.callee.name is 'BIND'
+            return {
+                type: 'NewExpression',
+                callee: node.arguments[0],
+                arguments: node.arguments.slice(1),
+                scope_at: node.scope_at,
+                func_at: node.func_at,
+            }
+
 global.to_put_before = undefined
 module.exports = (js) ->
     ctx = new tern.Context
@@ -164,6 +177,7 @@ module.exports = (js) ->
         ast = cleanup ast
         tern.analyze ast
         annotate ast
+        ast = bindify ast
         ast = cpp_types ast
         annotate_fake_classes ast
         pseudo_c_ast = format ast

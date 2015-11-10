@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include <string>
+#include <functional>
 
 class Console {
     public:
