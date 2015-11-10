@@ -53,33 +53,8 @@ formatters =
         else
             assert false, 'don\'t know what types this array contains!'
     ObjectExpression: (node) ->
-        if !node.properties.length
-            return RAW_C 'empty_object'
-
-        { make_fake_class } = require './fake-classes'
-        fake_class = make_fake_class node.kind, { assert_exists: true }
-
-        names_initting = (prop.key.name for prop in node.properties)
-        missing_names = fake_class.properties.slice()
-
-        values_initting = {}
-        for prop in node.properties
-            missing_names.splice(missing_names.indexOf(prop.key.name), 1)
-            values_initting[prop.key.name] = prop.value
-
-        constructor_arguments = []
-
-        for name in fake_class.properties
-            if name in missing_names
-                type = fake_class.types_by_property[name]
-                if type.name is 'string'
-                    constructor_arguments.push 'std::string("")'
-                if type.name is 'number'
-                    constructor_arguments.push '0.0'
-            if name in names_initting
-                constructor_arguments.push(gen values_initting[name])
-
-        return RAW_C "#{ fake_class.name }(#{ constructor_arguments })"
+        assert !node.properties.length, 'dumbjs doesn\'t know how to remove properties from an object? sorry :('
+        return RAW_C 'empty_object'
     VariableDeclaration: (node) ->
         decl = node.declarations[0]
         sides = [
