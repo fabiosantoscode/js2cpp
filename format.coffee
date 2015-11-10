@@ -86,6 +86,7 @@ formatters =
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
 
+boundfns_ive_seen = []
 # Formats a type.
 # Examples: "number" -> "int", "undefined" -> "void"
 format_type = (type) ->
@@ -94,7 +95,9 @@ format_type = (type) ->
         arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
         if /^boundFn\(/.test(type.name)
             functorName = type.name.replace(/^boundFn\((.*?)\)$/, '$1')
-            to_put_before.push("struct #{functorName};")
+            if functorName not in boundfns_ive_seen
+                to_put_before.push("struct #{functorName};")
+                boundfns_ive_seen.push(functorName)
             return functorName + ' *'
         return "std::function<#{format_type ret_type}
             (#{arg_types.join(', ')})>"
