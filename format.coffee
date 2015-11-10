@@ -1,6 +1,7 @@
 assert = require 'assert'
 estraverse = require 'estraverse'
 tern = require 'tern/lib/infer'
+standard_library_objects = require('./standard-library-objects.json')
 { gen, RAW_C } = require './gen'
 
 #############
@@ -30,10 +31,15 @@ formatters =
             shorter_op = node.operator[0]  # For example, &= becomes &
             return RAW_C "(#{name} = (int)
                 #{name} #{shorter_op} #{gen format node.right})"
-    CallExpression: (node) ->
-        if node.callee.type is 'MemberExpression' and
-                /^_closure/.test(gen(node.callee))
-            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})"
+    MemberExpression: (node) ->
+        [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
+        if obj in standard_library_objects
+            return RAW_C obj + '.' + prop
+        if node.parent.type is 'CallExpression' and node.parent.callee is node
+            # We're surely calling a function pointer.
+            # TODO Standard library objects' functions aren't pointers yet so wtf should we do?
+            return RAW_C "(*#{obj}->#{prop})"
+        return RAW_C obj + '->' + prop
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             RAW_C "std::string(#{gen node})"
@@ -62,8 +68,13 @@ formatters =
         semicolon = ';'
         semicolon = '' if node.parent.type is 'ForStatement'
         if decl.init
-            sides.push "#{gen format decl.init}#{semicolon}"
-        RAW_C sides.join ' = '
+            if node.kind instanceof tern.Obj
+                { make_fake_class } = require './fake-classes'
+                fake_class = make_fake_class(node.kind)
+                sides.push "new #{fake_class.name}()"
+            else
+                sides.push "#{gen format decl.init}"
+        RAW_C(sides.join(' = ') + semicolon)
     FunctionDeclaration: (node) ->
         return_type = format_type node.kind.retval.getType(false)
         if node.id.name is 'main'
@@ -110,7 +121,7 @@ format_type = (type) ->
 
     if type instanceof tern.Obj
         { make_fake_class } = require './fake-classes'
-        return make_fake_class(type).name
+        return make_fake_class(type).name + ' *'
 
     type_name = type or 'undefined'
 
