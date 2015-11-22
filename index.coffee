@@ -20,6 +20,28 @@ annotate = (ast) ->
     cur_fun = () -> fun_stack[fun_stack.length - 1]
     cur_var = () -> var_stack[var_stack.length - 1]
     cur_scope = () -> scope_stack[scope_stack.length - 1]
+    unroll_member_expression_into_array = (membex) ->
+        if membex.object.type is 'MemberExpression'
+            return unroll_member_expression_into_array(membex.object).concat([membex.property])
+        else if membex.object.type is 'Identifier'
+            return [membex.object, membex.property]
+        else
+            throw 'impossible'
+
+    member_expression_kind = (membex) ->
+        try
+            identifiers = unroll_member_expression_into_array(membex)
+        catch e
+            if e is 'impossible'
+                return
+            throw e
+
+        return identifiers.reduce((accum, ident) ->
+            if accum is undefined
+                return undefined
+            prop = accum.hasProp(ident.name)?.getType(false)
+            return prop or undefined
+        , cur_scope())
     estraverse.traverse ast,
         enter: (node, parent) ->
             node.func_at = cur_fun()
@@ -34,6 +56,19 @@ annotate = (ast) ->
                 fun_stack.push node
                 scope_stack.push(node.scope or node.body.scope or cur_scope())
                 node.closure = cur_scope()
+
+            if node.type is 'Identifier' and
+                    parent isnt cur_fun() and
+                    not (parent.type is 'MemberExpression' and parent.property is node)
+                prop = cur_scope().hasProp(node.name)
+                if prop
+                    type = prop.getType(false)
+                    assert type, 'Couldn\'t statically determine the type of ' + node.name
+                    node.kind = type
+
+            if node.type is 'MemberExpression'
+                node.kind = member_expression_kind(node)
+
             return node
         leave: (node) ->
             if node.type is 'VariableDeclaration'
@@ -142,7 +177,7 @@ tell_tern_about_bind = (ctx) ->
         funcType.args[0].addType(closureType)
         assert funcType and closureType, 'call to BIND not made with predictable arguments!'
 
-        funcType = new tern.Fn(
+        newFuncType = new tern.Fn(
             'boundFn('+funcType.name+')',
             tern.ANull,
             funcType.args.slice(1),
@@ -150,7 +185,9 @@ tell_tern_about_bind = (ctx) ->
             funcType.retval
         )
 
-        return funcType
+        newFuncType.original = funcType
+
+        return newFuncType
 
 
 # deal with dumbjs's bindify
@@ -158,6 +195,12 @@ bindify = (ast) ->
     current_function = null
     estraverse.replace ast, enter: (node, parent) ->
         if node.type is 'CallExpression' and node.callee.name is 'BIND'
+            assert node.arguments.length is 2
+            assert node.arguments[0].kind, "couldn\'t stactically determine the type of #{gen format node.arguments[0]}"
+            funcType = node.arguments[0].kind
+            if funcType.original
+                funcType = funcType.original
+            functions_that_need_bind.push(funcType)
             return {
                 type: 'NewExpression',
                 callee: node.arguments[0],
@@ -167,10 +210,12 @@ bindify = (ast) ->
             }
 
 global.to_put_before = undefined
+global.functions_that_need_bind = undefined
 module.exports = (js) ->
     ctx = new tern.Context
     tern.withContext ctx, () ->
         global.to_put_before = []
+        global.functions_that_need_bind = []
         js = dumbjs(js)
         tell_tern_about_bind(ctx)
         ast = tern.parse(js)

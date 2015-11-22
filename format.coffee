@@ -35,10 +35,12 @@ formatters =
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects
             return RAW_C obj + '.' + prop
-        if node.parent.type is 'CallExpression' and node.parent.callee is node
-            # We're surely calling a function pointer.
-            # TODO Standard library objects' functions aren't pointers yet so wtf should we do?
-            return RAW_C "(*#{obj}->#{prop})"
+        if node.parent.type is 'CallExpression' and
+                node.parent.callee is node and
+                node.kind
+            if node.kind in functions_that_need_bind or node.kind.original in functions_that_need_bind
+                # Calling one of our functors
+                return RAW_C "(*#{obj}->#{prop})"
         return RAW_C obj + '->' + prop
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
@@ -95,12 +97,8 @@ formatters =
                 };
             """
         else
-            # So yes. Every function except main needs to be a class
-            # This needs fixing.
             return RAW_C """
-                struct #{node.id.name} {
-                    #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
-                }
+                #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
             """
 
 format_params = (params) ->
