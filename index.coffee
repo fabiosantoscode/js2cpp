@@ -32,7 +32,7 @@ annotate = (ast) ->
             if node.type is 'FunctionDeclaration' or
                     node.type is 'FunctionExpression'
                 fun_stack.push node
-                scope_stack.push(node.body.scope or cur_scope())
+                scope_stack.push(node.scope or node.body.scope or cur_scope())
                 node.closure = cur_scope()
             return node
         leave: (node) ->

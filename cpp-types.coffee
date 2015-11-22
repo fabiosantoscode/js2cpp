@@ -3,6 +3,12 @@ assert = require 'assert'
 estraverse = require 'estraverse'
 { make_fake_class } = require './fake-classes'
 
+get_fn_type = (func) ->
+    scope = func.scope or func.body.scope
+    fnType = scope.fnType.getType(false)
+    assert fnType, 'Couldn\'t find a type for function ' + gen func
+    return fnType
+
 # Use c++ types
 # Places a "kind" property in nodes
 cpp_types = (ast) ->
@@ -12,18 +18,18 @@ cpp_types = (ast) ->
     retype_decl = (node) ->
         decl = node.declarations[0]
         if /^Function/.test decl.init.type
-            node.kind = decl.init.body.scope.fnType.getType(false)
-            assert node.kind, 'couldnt find a type for function' + gen node
+            node.kind = get_fn_type(node)
         else
             node.kind = type_of node, decl.id.name
             assert node.kind, 'couldn\'t find a type for node' + gen node
         assert node.kind
 
     retype_fun = (node) ->
-        node.kind = node.body.scope.fnType.getType(false)
+        node.kind = get_fn_type(node)
         assert node.kind, 'Couldn\'t find a type for function ' + gen node
         for param in node.params
-            param.kind = node.body.scope.hasProp(param.name).getType false
+            scope = node.scope or node.body.scope
+            param.kind = scope.hasProp(param.name).getType false
             assert param.kind, 'couldn\'t find a kind for function param ' + gen param
 
     estraverse.replace ast,
