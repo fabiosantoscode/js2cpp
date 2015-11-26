@@ -86,7 +86,7 @@ formatters =
                 #{gen format node.body}"
 
         params = node.params
-        if /^_closure/.test(params[0].name)
+        if /^_closure/.test(params[0]?.name)
             closure_name = params.shift()
             closure_decl = format_decl closure_name.kind, closure_name.name
             return RAW_C """

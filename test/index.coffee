@@ -44,3 +44,12 @@ it 'Can run some functions', () ->
     ''' + '\n'
   )
 
+it 'regression: cannot transpile functions with arguments', () ->
+    transpile("""
+        function x() {
+            return 6
+        }
+
+        x()
+    """)
+
