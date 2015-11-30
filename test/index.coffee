@@ -30,10 +30,19 @@ it 'Can run some functions', () ->
         while (n--) out += s
         return out
       }
+      function inc(n) {
+        return function() {
+          return n++
+        }
+      }
       console.log("fib(0)", fib(0))
       console.log("fib(1)", fib(1))
       console.log("fib(4)", fib(4))
       console.log("'ba' + repeat('na', 2)", 'ba' + repeat('na', 2))
+      var incrementor = inc(0)
+      console.log(incrementor())
+      console.log(incrementor())
+      console.log(incrementor())
       '''
     ),
     '''
@@ -41,6 +50,9 @@ it 'Can run some functions', () ->
     fib(1) 1
     fib(4) 3
     'ba' + repeat('na', 2) banana
+    0
+    1
+    2
     ''' + '\n'
   )
 

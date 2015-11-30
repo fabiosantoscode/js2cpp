@@ -42,6 +42,11 @@ formatters =
                 # Calling one of our functors
                 return RAW_C "(*#{obj}->#{prop})"
         return RAW_C obj + '->' + prop
+    Identifier: (node) ->
+        if node.parent.type is 'CallExpression' and node.kind
+            if node.parent.callee.type is 'Identifier' and node.parent.callee.kind in functions_that_need_bind or node.parent.callee.kind?.original in functions_that_need_bind
+                # Calling one of our functors again
+                return RAW_C "(*#{node.parent.callee.name})"
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             RAW_C "std::string(#{gen node})"
