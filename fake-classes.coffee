@@ -55,10 +55,9 @@ make_fake_class = (type, { assert_exists } = {}) ->
 
     # TODO this is a global variable
     to_put_before.push """
-        struct #{name}:public FKClass {
+        struct #{name} {
             #{class_body}
             #{name}(){}
-            #{name}(EmptyObject _){}
         };\n\n
     """
 

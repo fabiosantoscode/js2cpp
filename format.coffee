@@ -17,20 +17,11 @@ format = (ast) ->
 formatters =
     AssignmentExpression: (node) ->
         left = node.left
-        if left.type is 'MemberExpression' and node.scope_at.hasProp(left.object.name) and
-                left.computed and typeof left.property.value is 'number' and
-                left.object.kind instanceof tern.Arr
-            # array member assignment.
-            return RAW_C "#{ gen format node.left.object }" +
-                ".subscript_assign(" +
-                "#{ gen format node.left.property }, " +
-                "#{ gen format node.right})"
 
         if node.operator in ['|=']
-            name = left.name
             shorter_op = node.operator[0]  # For example, &= becomes &
-            return RAW_C "(#{name} = (int)
-                #{name} #{shorter_op} #{gen format node.right})"
+            return RAW_C "(#{gen format left} = (int)
+                #{gen format left} #{shorter_op} #{gen format node.right})"
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects
@@ -50,10 +41,6 @@ formatters =
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             RAW_C "std::string(#{gen node})"
-    BinaryExpression: (node) ->
-        if node.operator in ['&']
-            node.left = RAW_C "((int) #{gen format node.left})"
-            return node
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
 
@@ -66,8 +53,10 @@ formatters =
         else
             assert false, 'don\'t know what types this array contains!'
     ObjectExpression: (node) ->
-        assert !node.properties.length, 'dumbjs doesn\'t know how to remove properties from an object? sorry :('
-        return RAW_C 'empty_object'
+        assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
+        { make_fake_class } = require './fake-classes'
+        fake_class = make_fake_class(node.kind)
+        return RAW_C "new #{fake_class.name}()"
     VariableDeclaration: (node) ->
         decl = node.declarations[0]
         sides = [
@@ -75,12 +64,7 @@ formatters =
         semicolon = ';'
         semicolon = '' if node.parent.type is 'ForStatement'
         if decl.init
-            if node.kind instanceof tern.Obj
-                { make_fake_class } = require './fake-classes'
-                fake_class = make_fake_class(node.kind)
-                sides.push "new #{fake_class.name}()"
-            else
-                sides.push "#{gen format decl.init}"
+            sides.push "#{gen format decl.init}"
         RAW_C(sides.join(' = ') + semicolon)
     FunctionDeclaration: (node) ->
         return_type = format_type node.kind.retval.getType(false)
