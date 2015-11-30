@@ -18,11 +18,6 @@ class Console {
         }
         log(rest...);
     }
-    template<typename T, typename... Args>
-    static void log(T t, Args... rest) {
-        printf("%s ", std::to_string(t).c_str());
-        log(rest...);
-    }
     static void log(std::string only) {
         printf("%s\n", only.c_str());
     }
@@ -32,10 +27,6 @@ class Console {
         } else {
             printf("%f\n", only);
         }
-    }
-    template<typename T>
-    static void log(T t) {
-        printf("%s\n", std::to_string(t).c_str());
     }
 };
 
