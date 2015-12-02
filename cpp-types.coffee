@@ -17,7 +17,7 @@ cpp_types = (ast) ->
 
     retype_decl = (node) ->
         decl = node.declarations[0]
-        if /^Function/.test decl.init.type
+        if decl.init && /^Function/.test decl.type
             node.kind = get_fn_type(node)
         else
             node.kind = type_of node, decl.id.name
