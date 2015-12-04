@@ -43,6 +43,8 @@ it 'Can run some functions', () ->
       console.log(incrementor())
       console.log(incrementor())
       console.log(incrementor())
+      var x = [1,2,3]
+      console.log([1,2,3], x, x[0], [1,2,3][1])
       '''
     ),
     '''
@@ -53,6 +55,7 @@ it 'Can run some functions', () ->
     0
     1
     2
+    [ 1, 2, 3 ] [ 1, 2, 3 ] 1 2
     ''' + '\n'
   )
 

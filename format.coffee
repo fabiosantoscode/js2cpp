@@ -32,6 +32,8 @@ formatters =
             if node.kind in functions_that_need_bind or node.kind.original in functions_that_need_bind
                 # Calling one of our functors
                 return RAW_C "(*#{obj}->#{prop})"
+        if node.computed
+            return RAW_C "#{obj}[#{prop}]"
         return RAW_C obj + '->' + prop
     Identifier: (node) ->
         if node.parent.type is 'CallExpression' and node.kind
@@ -43,15 +45,7 @@ formatters =
             RAW_C "std::string(#{gen node})"
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
-
-        if node.parent.parent.type == 'VariableDeclaration'
-            arr_types = node.parent.parent.kind.props['<i>'].types
-            if arr_types.length == 1
-                return RAW_C "array_from_items<#{format_type arr_types[0]}>(#{items.join ', '})"
-            else
-                assert false, 'this array contains more than one type!'
-        else
-            assert false, 'don\'t know what types this array contains!'
+        return RAW_C "std::vector<double>({ #{items.join(', ')} })"
     ObjectExpression: (node) ->
         assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
         { make_fake_class } = require './fake-classes'
@@ -112,8 +106,8 @@ format_type = (type) ->
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
         if arr_types.length == 1
-            return "SimpleArray<#{format_type arr_types}>"
-        return "BoxArray"
+            return "std::vector<#{format_type arr_types}>"
+        throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
 
     if type instanceof tern.Obj
         { make_fake_class } = require './fake-classes'

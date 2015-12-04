@@ -39,7 +39,9 @@ annotate = (ast) ->
         return identifiers.reduce((accum, ident) ->
             if accum is undefined
                 return undefined
-            prop = accum.hasProp(ident.name)?.getType(false)
+            prop = accum.hasProp(
+                if ident.type is 'Identifier' then ident.name else '<i>'
+            )?.getType(false)
             return prop or undefined
         , cur_scope())
     estraverse.traverse ast,
