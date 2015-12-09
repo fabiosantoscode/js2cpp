@@ -119,6 +119,7 @@ format_type = (type) ->
         string: 'std::string'
         number: 'double'
         undefined: 'void'
+        bool: 'bool'
     }[type_name] or assert false, "unknown type #{type_name}"
 
 # Format a decl.
