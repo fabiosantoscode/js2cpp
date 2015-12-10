@@ -7,10 +7,10 @@ tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
-{ format } = require('./format')
-{ gen } = require('./gen')
-{ make_fake_class } = require './fake-classes'
-cpp_types = require './cpp-types'
+{ format } = require('./lib/format')
+{ gen } = require('./lib/gen')
+{ make_fake_class } = require './lib/fake-classes'
+cpp_types = require './lib/cpp-types'
 
 # Annotate the AST with "func_at", "scope_at", "" properties which tell us what function a tree node belongs to
 annotate = (ast) ->
