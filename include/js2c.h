@@ -47,7 +47,7 @@ class Math_ {
     // double log2(double n) { return }
     double pow(double n, double power) { return ::pow(n, power); }
     double random() { return (double)rand() / RAND_MAX; }
-    // double round(double n) { return }
+    double round(double n) { return ::round(n); }
     // double sign(double n) { return }
     double sin(double n) { return ::sin(n); }
     // double sinh(double n) { return }

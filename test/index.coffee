@@ -50,6 +50,7 @@ it 'Can run some functions', () ->
       console.log('Math.pow(2, 10):', Math.pow(2, 10))
       console.log('Math.log(Math.E):', Math.log(Math.E))
       console.log('Math.ceil(Math.LOG10E):', Math.ceil(Math.LOG10E))
+      console.log('Math.round(0.1), Math.round(0.5), Math.round(0.6):', Math.round(0.1), Math.round(0.5), Math.round(0.6))
       console.log('Math.sin(90):', Math.sin(90))
       console.log('Math.sqrt(4):', Math.sqrt(4))
       console.log('Math.tan(45):', Math.tan(45))
@@ -80,6 +81,7 @@ it 'Can run some functions', () ->
     Math.pow(2, 10): 1024
     Math.log(Math.E): 1
     Math.ceil(Math.LOG10E): 1
+    Math.round(0.1), Math.round(0.5), Math.round(0.6): 0 1 1
     Math.sin(90): 0.893997
     Math.sqrt(4): 2
     Math.tan(45): 1.619775
