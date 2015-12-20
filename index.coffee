@@ -80,29 +80,12 @@ annotate = (ast) ->
                 scope_stack.pop()
     return ast
 
-annotate_fake_classes = (ast) ->
-    estraverse.traverse ast,
-        enter: (node) ->
-            if node.type is 'ObjectExpression'
-                make_fake_class node.kind
-                return undefined
-    return ast
-
-# These types are passed by value. All the others, by reference.
-simple_types = ['int', 'double']
-constant_types = ['std::string']
-
 # Flatten things which are expressions in JS, but statements in C
 flatten = (ast) ->
     counter = 0
     gen_name = () -> 'flatten_' + counter++
     current_function = () -> fnstack[fnstack.length - 1]
     fnstack = []
-
-    #put_in_top = (node) ->
-    #    generated_name = name()
-    #    ast.body.unshift node
-    #    return { type: 'Identifier', name: generated_name }
 
     put_in_function = (node, {is_func, global_ok, name} = {}) ->
         insertion = node.func_at?.body
@@ -226,7 +209,6 @@ module.exports = (js) ->
         annotate ast
         ast = bindify ast
         ast = cpp_types ast
-        annotate_fake_classes ast
         pseudo_c_ast = format ast
         before_c = (global.to_put_before.join '\n') + '\n\n'
         c = gen(pseudo_c_ast)
