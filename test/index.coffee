@@ -65,6 +65,9 @@ it 'Can run some functions', () ->
       console.log('Math.random() <= 1 && Math.random() >= 0', Math.random() <= 1 && Math.random() >= 0)
       console.log('NaN', NaN)
       console.log('isNaN(NaN)', isNaN(NaN))
+      console.log('FOO=bar', process.env['FOO'] = 'bar')
+      console.log('process.env[\\'FOO\\']', process.env['FOO'])
+      console.log('process.env.FOO', process.env.FOO)
       '''
     ),
     '''
@@ -96,8 +99,13 @@ it 'Can run some functions', () ->
     Math.random() <= 1 && Math.random() >= 0 true
     NaN NaN
     isNaN(NaN) true
+    FOO=bar bar
+    process.env['FOO'] bar
+    process.env.FOO bar
     ''' + '\n'
   )
+
+
 
 it 'regression: cannot transpile functions with arguments', () ->
     transpile("""

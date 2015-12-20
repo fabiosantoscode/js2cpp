@@ -9,6 +9,7 @@ es = require 'event-stream'
 
 { format } = require('./lib/format')
 { gen } = require('./lib/gen')
+run_transforms = require('./transforms/index')
 { make_fake_class } = require './lib/fake-classes'
 cpp_types = require './lib/cpp-types'
 
@@ -209,6 +210,7 @@ module.exports = (js) ->
         annotate ast
         ast = bindify ast
         ast = cpp_types ast
+        run_transforms(ast)
         pseudo_c_ast = format ast
         before_c = (global.to_put_before.join '\n') + '\n\n'
         c = gen(pseudo_c_ast)

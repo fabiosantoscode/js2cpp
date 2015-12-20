@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <time.h>
+#include <cstdlib>
 #include <functional>
 #define NaN NAN
 #define isNaN isnan
@@ -82,6 +83,28 @@ class Math_ {
 };
 
 Math_ Math;
+
+class Env {
+    public:
+    std::string operator [] (std::string variable) {
+        try {
+            return std::getenv(variable.c_str());
+        } catch (std::logic_error e) {
+            return std::string("");
+        }
+    }
+    std::string setenv (std::string variable, std::string value) {
+        ::setenv(variable.c_str(), value.c_str(), value.length());
+        return value;
+    }
+};
+
+class Process {
+    public:
+    Env env;
+};
+
+Process process;
 
 class Console {
     public:
