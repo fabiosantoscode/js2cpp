@@ -80,8 +80,6 @@ formatters =
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
 
-# TODO deep bind me
-boundfns_ive_seen = []
 # Formats a type.
 # Examples: "number" -> "int", "undefined" -> "void"
 format_type = (type) ->

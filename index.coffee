@@ -153,11 +153,13 @@ bindify = (ast) ->
 
 global.to_put_before = undefined
 global.functions_that_need_bind = undefined
+global.boundfns_ive_seen = undefined
 module.exports = (js) ->
     ctx = new tern.Context
     tern.withContext ctx, () ->
         global.to_put_before = []
         global.functions_that_need_bind = []
+        global.boundfns_ive_seen = []
         js = dumbjs(js)
         tell_tern_about_bind(ctx)
         ast = tern.parse(js)
