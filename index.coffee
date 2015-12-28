@@ -82,51 +82,6 @@ annotate = (ast) ->
                 scope_stack.pop()
     return ast
 
-# Flatten things which are expressions in JS, but statements in C
-flatten = (ast) ->
-    counter = 0
-    gen_name = () -> 'flatten_' + counter++
-    current_function = () -> fnstack[fnstack.length - 1]
-    fnstack = []
-
-    put_in_function = (node, {is_func, global_ok, name} = {}) ->
-        insertion = node.func_at?.body
-        if (not insertion) and global_ok
-            insertion = ast
-        generated_name = name or gen_name()
-        if not is_func
-            decl =
-                type: "VariableDeclaration",
-                kind: 'var'
-                declarations: [
-                    type: "VariableDeclarator",
-                    id: type: "Identifier", name: generated_name
-                    init: node ]
-        else
-            decl = node
-            decl.type = 'FunctionDeclaration'
-            decl.id = { type: 'Identifier', name: generated_name }
-        insertion.body.unshift decl
-        return { type: 'Identifier', name: generated_name }
-
-    estraverse.replace ast,
-        leave: (node, parent) ->
-            if node.type is 'VariableDeclaration'
-                the_var = node
-                the_func = null
-                estraverse.traverse node, enter: (node, parent) ->
-                    if node.type in ["FunctionExpression", "FunctionDeclaration"] and
-                            parent.parent is the_var
-                        assert not the_func, '(SANITY) two functions are direct children of this var statement? wtfmen'
-                        the_func = node
-
-                if the_func
-                    the_func.type = 'FunctionDeclaration'
-                    the_func.id = the_var.declarations[0].id
-
-                return the_func if the_func
-
-
 # Cleanup
 cleanup = (ast) ->
     estraverse.replace ast, enter: (node) ->
