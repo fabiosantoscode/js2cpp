@@ -23,19 +23,20 @@ annotate = (ast) ->
     cur_scope = () -> scope_stack[scope_stack.length - 1]
     unroll_member_expression_into_array = (membex) ->
         if membex.object.type is 'MemberExpression'
-            return unroll_member_expression_into_array(membex.object).concat([membex.property])
+            res = unroll_member_expression_into_array(membex.object)
+            if res is undefined
+                return res
+            return res.concat([membex.property])
         else if membex.object.type is 'Identifier'
             return [membex.object, membex.property]
         else
-            throw 'impossible'
+            return undefined
 
     member_expression_kind = (membex) ->
-        try
-            identifiers = unroll_member_expression_into_array(membex)
-        catch e
-            if e is 'impossible'
-                return
-            throw e
+        identifiers = unroll_member_expression_into_array(membex)
+
+        if identifiers is undefined
+            return
 
         return identifiers.reduce((accum, ident) ->
             if accum is undefined
