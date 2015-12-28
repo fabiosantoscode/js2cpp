@@ -4,6 +4,7 @@ assert = require 'assert'
 dumbjs = require 'dumbjs/index'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
+{ Server, registerPlugin } = require 'tern'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
@@ -100,37 +101,30 @@ cleanup = (ast) ->
                     params: node.declarations[0].init.params,
                 }
 
-tell_tern_about_bind = (ctx) ->
-    topScope = ctx.topScope
+registerPlugin 'dumbjs_bind', (server) ->
+    assert server, 'no server!'
+    IsBound = tern.constraint({
+        construct: (self, target) ->
+            this.self = self
+            this.target = target
+        addType: (fn) ->
+            assert fn instanceof tern.Fn
+            assert fn.args.length
+            this.target.addType(
+                new tern.Fn(fn.name, tern.ANull, fn.args.slice(1), fn.argNames.slice(1), fn.retval))
+            this.self.propagate(fn.args[0])
+    })
+    tern.registerFunction 'dumbjsbindfunc', (_self, args) ->
+        assert args.length is 2, 'BIND called with ' + args.length + ' arguments!'
+        bound_function = new tern.AVal
+        args[0].propagate(new IsBound(args[1], bound_function))
+        return bound_function
 
-    bindProp = topScope.defProp('BIND')
-    bindFunc = new tern.Fn(
-        'BIND',      # fname
-        tern.ANull,  # this
-        [], # arguments. No arguments, hope that's ok with tern.
-        [],
-        new tern.Fn()  # the return type
-    )
-    bindProp.addType(bindFunc)
-
-    bindFunc.computeRet = (_self, [funcType, closureType], [funcNode, closureNode]) ->
-        funcType = funcType.getType(false)
-        closureType = closureType.getType(false)
-        funcType.args[0].addType(closureType)
-        assert funcType and closureType, 'call to BIND not made with predictable arguments!'
-
-        newFuncType = new tern.Fn(
-            'boundFn('+funcType.name+')',
-            tern.ANull,
-            funcType.args.slice(1),
-            funcType.argNames.slice(1),
-            funcType.retval
-        )
-
-        newFuncType.original = funcType
-
-        return newFuncType
-
+    server.addDefs({
+        'BIND': {
+            '!type': 'fn(func: fn(), closure: ?) -> !custom:dumbjsbindfunc',
+        }
+    })
 
 # deal with dumbjs's bindify
 bindify = (ast) ->
@@ -155,13 +149,15 @@ global.to_put_before = undefined
 global.functions_that_need_bind = undefined
 global.boundfns_ive_seen = undefined
 module.exports = (js) ->
-    ctx = new tern.Context
+    server = new Server({})
+    server.loadPlugin('dumbjs_bind', {})
+    server.reset()
+    ctx = server.cx
     tern.withContext ctx, () ->
         global.to_put_before = []
         global.functions_that_need_bind = []
         global.boundfns_ive_seen = []
         js = dumbjs(js)
-        tell_tern_about_bind(ctx)
         ast = tern.parse(js)
         ast = cleanup ast
         tern.analyze ast
