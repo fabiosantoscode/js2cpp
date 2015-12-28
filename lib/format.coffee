@@ -15,13 +15,6 @@ format = (ast) ->
 
 # Some formatters
 formatters =
-    AssignmentExpression: (node) ->
-        left = node.left
-
-        if node.operator in ['|=']
-            shorter_op = node.operator[0]  # For example, &= becomes &
-            return RAW_C "(#{gen format left} = (int)
-                #{gen format left} #{shorter_op} #{gen format node.right})"
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects
@@ -87,6 +80,7 @@ formatters =
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
 
+# TODO deep bind me
 boundfns_ive_seen = []
 # Formats a type.
 # Examples: "number" -> "int", "undefined" -> "void"
