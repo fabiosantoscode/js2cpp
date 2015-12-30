@@ -110,8 +110,10 @@ registerPlugin 'dumbjs_bind', (server) ->
         addType: (fn) ->
             assert fn instanceof tern.Fn
             assert fn.args.length
-            this.target.addType(
-                new tern.Fn(fn.name, tern.ANull, fn.args.slice(1), fn.argNames.slice(1), fn.retval))
+            boundFunctionType = new tern.Fn(fn.name, tern.ANull, fn.args.slice(1), fn.argNames.slice(1), fn.retval)
+            boundFunctionType.isBoundFn = true
+            boundFunctionType.original = fn
+            this.target.addType(boundFunctionType)
             this.self.propagate(fn.args[0])
     })
     tern.registerFunction 'dumbjsbindfunc', (_self, args) ->

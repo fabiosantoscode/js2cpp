@@ -86,12 +86,11 @@ format_type = (type) ->
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
         arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
-        if /^boundFn\(/.test(type.name)
-            functorName = type.name.replace(/^boundFn\((.*?)\)$/, '$1')
-            if functorName not in boundfns_ive_seen
-                to_put_before.push("struct #{functorName};")
-                boundfns_ive_seen.push(functorName)
-            return functorName + ' *'
+        if type.isBoundFn
+            if type.name not in boundfns_ive_seen
+                to_put_before.push("struct #{type.name};")
+                boundfns_ive_seen.push(type.name)
+            return type.name + ' *'
         return "std::function<#{format_type ret_type}
             (#{arg_types.join(', ')})>"
         return type.toString()
