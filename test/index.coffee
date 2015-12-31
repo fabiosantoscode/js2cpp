@@ -12,7 +12,7 @@ transpile = (program) ->
 output_of = (program) ->
   transpile program
   sh([
-    'g++-4.8 -std=c++0x',
+    'g++ -std=c++0x',
     '/tmp/js2ctests.cpp',
     '-I include/',
     '-lrt',
