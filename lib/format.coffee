@@ -69,6 +69,7 @@ formatters =
         if /^_closure/.test(params[0]?.name)
             closure_name = params.shift()
             closure_decl = format_decl closure_name.kind, closure_name.name
+            # TODO check if functions actually need forward declarations first. Maybe.
             to_put_before.push """
                 struct #{node.id.name} {
                     #{closure_decl};
@@ -80,6 +81,10 @@ formatters =
                 #{return_type} #{node.id.name}::operator() (#{format_params params}) #{gen format node.body}
             "
         else
+            # TODO check if functions actually need forward declarations first. Maybe.
+            to_put_before.push """
+                 #{return_type} #{node.id.name} (#{format_params params});
+            """
             return RAW_C "
                 #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
             "
