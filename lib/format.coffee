@@ -28,6 +28,10 @@ formatters =
         if node.computed
             return RAW_C "#{obj}[#{prop}]"
         return RAW_C obj + '->' + prop
+    CallExpression: (node) ->
+        if node.callee.type is 'NewExpression' and
+                /^_flatten/.test(gen(node.callee.callee))
+            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})"
     Identifier: (node) ->
         if node.parent.type is 'CallExpression' and node.kind
             if node.parent.callee.type is 'Identifier' and node.parent.callee.kind in functions_that_need_bind or node.parent.callee.kind?.original in functions_that_need_bind

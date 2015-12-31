@@ -49,8 +49,21 @@ cpp_types = (ast) ->
                     type = parent.func_at.kind.retval.getType(false)
                     class_of = make_fake_class type
                     node.kind = type
+                else if parent.type is 'AssignmentExpression' and
+                        parent.left.type is 'MemberExpression'
+                    # For declaring objects inside closures: _closure_0.someObj = {}
+                    # We really need a definitive solution for getting
+                    # the kind of something, short of using \.kind.
+                    # Tern knows much more than we can infer with
+                    # these simple cases, but I can't seem to coerce
+                    # it to give me the information.
+                    # halp?
+                    type = parent.left.kind  # inferred in index.coffee for some reason, but can't be moved here because it must be before this runs.
+                    assert type
+                    make_fake_class type
+                    node.kind = type
                 else
-                    assert false, 'object is in weird place, cannot find its kind'
+                    assert false, 'object is in weird place, cannot find its kind inside a ' + parent.type
             return node
 
 module.exports = cpp_types

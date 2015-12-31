@@ -20,6 +20,28 @@ output_of = (program) ->
   ].join ' ')
   return ''+sh '/tmp/js2ctests.out'
 
+fakeConsole = '\n' +
+  '''
+    var output = '';
+    var console = {
+      log: function() {
+        output += [].slice.call(arguments)
+          .map(function (s) {
+            return typeof s === 'string' ?
+              s :
+              typeof s === 'number' ? (
+                Math.floor(s) === s ? s :
+                // TODO do this instead in Console::log
+                String(s).split('.').length == 2 && String(s).split('.')[1].length < 6 ? (function addZero(s) { if (s.split('.')[1].length < 6) { return addZero(s + '0') } return s }(String(s))) :
+                  // TODO do this autorounding instead in Console::log
+                  Math.round(s * 1000000) / 1000000
+              ) :
+              require('util').inspect(s)
+          }).join(' ') + '\\n'
+      }
+    };
+  '''
+
 it 'Can run some functions', () ->
   javascript_code = '''
       function fib(n) {
@@ -108,27 +130,42 @@ it 'Can run some functions', () ->
     ''' + '\n'
 
   ok.equal(eval(
-    bindifyPrelude + '\n' +
-    '''
-      var output = '';
-      var console = {
-        log: function() {
-          output += [].slice.call(arguments)
-            .map(function (s) {
-              return typeof s === 'string' ?
-                s :
-                typeof s === 'number' ? (
-                  Math.floor(s) === s ? s :
-                  // TODO do this instead in Console::log
-                  String(s).split('.').length == 2 && String(s).split('.')[1].length < 6 ? (function addZero(s) { if (s.split('.')[1].length < 6) { return addZero(s + '0') } return s }(String(s))) :
-                    // TODO do this autorounding instead in Console::log
-                    Math.round(s * 1000000) / 1000000
-                ) :
-                require('util').inspect(s)
-            }).join(' ') + '\\n'
+    bindifyPrelude +
+    fakeConsole +
+    dumbjs(javascript_code) + '\n' +
+    'main()' + '\n' +
+    'output'
+  ),
+  expected_result,
+  'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+  ok.equal(output_of(javascript_code), expected_result)
+
+it 'deals with functions returning objects', () ->
+  javascript_code = '''
+    function maker(start) {
+      start = start + 2
+      return {
+        increment: function () {
+          start++
+        },
+        getValue: function () {
+          return start
         }
-      };
-    ''' +
+      }
+    }
+    var obj = maker(5)
+    obj.increment()
+    console.log('obj.getValue()', obj.getValue())
+  '''
+
+  expected_result = '''
+    obj.getValue() 8
+  ''' + '\n'
+
+  ok.equal(eval(
+    bindifyPrelude +
+    fakeConsole +
     dumbjs(javascript_code) + '\n' +
     'main()' + '\n' +
     'output'
