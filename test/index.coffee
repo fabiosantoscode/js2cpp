@@ -13,11 +13,11 @@ output_of = (program) ->
   transpile program
   sh([
     'g++-4.8 -std=c++0x',
+    '/tmp/js2ctests.cpp',
     '-I include/',
     '-lrt',
     '-O0',
     '-o /tmp/js2ctests.out',
-    '/tmp/js2ctests.cpp',
   ].join ' ')
   return ''+sh '/tmp/js2ctests.out'
 
