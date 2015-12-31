@@ -9,3 +9,5 @@ addons:
     packages:
     - gcc-4.8
     - g++-4.8
+env:
+  - GPP_BINARY=g++-4.8
