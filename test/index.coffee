@@ -14,6 +14,7 @@ output_of = (program) ->
   sh([
     'g++-4.8 -std=c++0x',
     '-I include/',
+    '-lrt',
     '-O0',
     '-o /tmp/js2ctests.out',
     '/tmp/js2ctests.cpp',
