@@ -65,17 +65,20 @@ formatters =
         if /^_closure/.test(params[0]?.name)
             closure_name = params.shift()
             closure_decl = format_decl closure_name.kind, closure_name.name
-            return RAW_C """
+            to_put_before.push """
                 struct #{node.id.name} {
                     #{closure_decl};
                     #{node.id.name}(#{closure_decl}):_closure(_closure) { }
-                    #{return_type} operator() (#{format_params params}) #{indent_tail gen format node.body}
+                    #{return_type} operator() (#{format_params params});
                 };
             """
+            return RAW_C "
+                #{return_type} #{node.id.name}::operator() (#{format_params params}) #{gen format node.body}
+            "
         else
-            return RAW_C """
+            return RAW_C "
                 #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
-            """
+            "
 
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
