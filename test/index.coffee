@@ -12,7 +12,8 @@ transpile = (program) ->
 output_of = (program) ->
   transpile program
   sh([
-    'g++ -std=c++0x',
+    process.env['GPP_BINARY'] or 'g++',
+    '-std=c++0x',
     '/tmp/js2ctests.cpp',
     '-I include/',
     '-lrt',
