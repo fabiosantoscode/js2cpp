@@ -14,9 +14,4 @@ inpt.pipe es.wait (err, js) ->
         console.error err
         return
     cpp = js2cpp js
-    process.stdout.write """
-    #include "js2c.h"
-    #include <string>
-    \n
-    """
     process.stdout.write cpp + '\n'

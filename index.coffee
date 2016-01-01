@@ -168,7 +168,12 @@ module.exports = (js) ->
         ast = cpp_types ast
         run_transforms(ast)
         pseudo_c_ast = format ast
-        before_c = (global.to_put_before.join '\n') + '\n\n'
+        before_c = """
+        #include "js2c.h"
+        #include <string>
+        \n
+        """
+        before_c += (global.to_put_before.join '\n') + '\n\n'
         c = gen(pseudo_c_ast)
         return before_c + c
 
