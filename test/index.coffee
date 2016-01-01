@@ -94,6 +94,20 @@ it 'Can run some functions', () ->
     console.log('FOO=bar', process.env['FOO'] = 'bar')
     console.log('process.env[\\'FOO\\']', process.env['FOO'])
     console.log('process.env.FOO', process.env.FOO)
+    function maker(start) {
+      start = start + 2
+      return {
+        increment: function () {
+          start++
+        },
+        getValue: function () {
+          return start
+        }
+      }
+    }
+    var obj = maker(5)
+    obj.increment()
+    console.log('obj.getValue()', obj.getValue())
     '''
 
   expected_result =
@@ -129,6 +143,7 @@ it 'Can run some functions', () ->
     FOO=bar bar
     process.env['FOO'] bar
     process.env.FOO bar
+    obj.getValue() 8
     ''' + '\n'
 
   ok.equal(eval(
@@ -142,42 +157,6 @@ it 'Can run some functions', () ->
   'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
 
   ok.equal(output_of(javascript_code), expected_result)
-
-it 'deals with functions returning objects', () ->
-  javascript_code = '''
-    function maker(start) {
-      start = start + 2
-      return {
-        increment: function () {
-          start++
-        },
-        getValue: function () {
-          return start
-        }
-      }
-    }
-    var obj = maker(5)
-    obj.increment()
-    console.log('obj.getValue()', obj.getValue())
-  '''
-
-  expected_result = '''
-    obj.getValue() 8
-  ''' + '\n'
-
-  ok.equal(eval(
-    bindifyPrelude +
-    fakeConsole +
-    dumbjs(javascript_code) + '\n' +
-    'main()' + '\n' +
-    'output'
-  ),
-  expected_result,
-  'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
-
-  ok.equal(output_of(javascript_code), expected_result)
-
-
 
 it 'regression: cannot transpile functions with arguments', () ->
     transpile("""
