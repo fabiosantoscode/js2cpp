@@ -159,11 +159,11 @@ it 'Can run some functions', () ->
   ok.equal(output_of(javascript_code), expected_result)
 
 it 'regression: cannot transpile functions with arguments', () ->
-    transpile("""
-        function x() {
-            return 6
-        }
+  transpile("""
+    function x() {
+      return 6
+    }
 
-        x()
-    """)
+    x()
+  """)
 
