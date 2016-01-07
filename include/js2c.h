@@ -7,6 +7,9 @@
 #include <functional>
 #define NaN NAN
 #define isNaN isnan
+// Temporary fix for how dumbjs transpiles commonJS modules.
+// Should be done when there is an Undefinable<T> type.
+#define undefined NULL
 
 class Math_ {
     public:

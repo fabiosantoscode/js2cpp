@@ -158,6 +158,25 @@ it 'Can run some functions', () ->
 
   ok.equal(output_of(javascript_code), expected_result)
 
+it 'can transpile code that\'s been through the browserify machinery back in dumbjs', () ->
+  javascript_code = """
+    console.log(require(#{JSON.stringify(__dirname + '/some.js')})())
+  """
+
+  expected_result = "xfoo\n"
+
+  ok.equal(eval(
+    bindifyPrelude +
+    fakeConsole +
+    dumbjs(javascript_code) + '\n' +
+    'main()' + '\n' +
+    'output'
+  ),
+  expected_result,
+  'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+  ok.equal(output_of(javascript_code), expected_result)
+
 it 'regression: cannot transpile functions with arguments', () ->
   transpile("""
     function x() {
