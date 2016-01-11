@@ -5,11 +5,105 @@
 #include <time.h>
 #include <cstdlib>
 #include <functional>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 #define NaN NAN
 #define isNaN isnan
 // Temporary fix for how dumbjs transpiles commonJS modules.
 // Should be done when there is an Undefinable<T> type.
-#define undefined NULL
+#define undefined nullptr
+
+namespace dumbjs_number_convert {
+    double parse(std::string n, int base) {
+        if (base == 10) {
+            double ret = strtod(n.c_str(), NULL);
+        }
+        return (double) strtol(n.c_str(), NULL, base);
+    }
+    std::string stringify(double n, int base) {
+        if (isnan(n)) {
+            return std::string("NaN");
+        }
+        if (n == (int) n) {
+            return std::to_string((int) n);
+        }
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(15) << n;
+        return stream.str();
+    }
+};
+
+std::string String (double);
+
+template<typename T>
+std::string String(std::vector<T> ary) {
+    std::string s("");
+    size_t len = ary.size();
+    for (size_t i = 0; i < len; i++) {
+        s += String(ary[i]);
+        if (i < len - 1)
+            s += std::string(",");
+    }
+    return s;
+}
+
+std::string String (double convert_from) {
+    return dumbjs_number_convert::stringify(convert_from, 10);
+}
+
+std::string String (std::nullptr_t x) {
+    // Temporary fix for how commonJS modules are transpiled
+    return std::string("undefined");
+}
+
+std::string String (std::string convert_from) {
+    return convert_from;
+}
+
+
+std::string String() { return std::string(""); }
+
+double Number(std::string convert_from) {
+    if (convert_from.length() == 0) {
+        return 0;
+    }
+    if (convert_from[0] == ' ') {
+        return Number(convert_from.substr(1));
+    }
+    if (convert_from[0] == '0' && convert_from.length() >= 2) {
+        int radix;
+        int prefix_length;
+        switch (convert_from[1]) {
+            case 'x':
+            case 'X':
+                radix = 16;
+                prefix_length = 2;
+            break;
+            case 'o':
+            case 'O':
+                radix =  8;
+                prefix_length = 2;
+            break;
+            case 'B':
+            case 'b':
+                radix =  2;
+                prefix_length = 2;
+            break;
+            default:
+                radix = 10;
+                prefix_length = 1;
+            break;
+        }
+        return dumbjs_number_convert::parse(convert_from.substr(prefix_length), radix);
+    }
+    return strtod(convert_from.c_str(), NULL);
+}
+
+double Number() { return 0; }
+
+double Number(double n) { return n; }
 
 class Math_ {
     public:
@@ -110,71 +204,43 @@ class Process {
 Process process;
 
 class Console {
+    template<typename T>
+    static std::string representation(std::vector<T> only) {
+        std::string s("[ ");
+        for (typename std::vector<T>::iterator iter = only.begin();
+                iter != only.end();
+                iter++) {
+            s += representation(*iter);
+            if (iter != only.end() - 1) { s += std::string(", "); }
+        }
+        s += (" ]");
+        return s;
+    }
+    static std::string representation(double n) {
+        if (n == (int) n) {
+            return std::to_string((int) n);
+        }
+        if (isnan(n)) {
+            return std::string("NaN");
+        }
+        return std::to_string(n);  // Cuts to 6 zeroes, just like node does when printing to the console
+    }
+    static std::string representation(int boolean_value) {
+        return std::string(
+            boolean_value ? "true" : "false"
+        );
+    }
+    static std::string representation(std::string only) {
+        return only;
+    }
     public:
-    static void log(int only) {
-        printf("%s\n", only ? "true" : "false");
+    template<typename T>
+    static void log(T only) {
+        std::cout << representation(only) << std::endl;
     }
-    template<typename... Args>
-    static void log(int first, Args... rest) {
-        printf("%s ", first ? "true" : "false");
-        log(rest...);
-    }
-    static void log(double only) {
-        if (isnan(only)) {
-            printf("NaN\n");
-        } else if (only == (int)only) {
-            printf("%0.0f\n", only);
-        } else {
-            printf("%f\n", only);
-        }
-    }
-    template<typename... Args>
-    static void log(double first, Args... rest) {
-        if (isnan(first)) {
-            printf("NaN ");
-        } else if (first == (int)first) {
-            printf("%0.0f ", first);
-        } else {
-            printf("%f ", first);
-        }
-        log(rest...);
-    }
-    static void log(std::string only) {
-        printf("%s\n", only.c_str());
-    }
-    template<typename... Args>
-    static void log(std::string first, Args... rest) {
-        printf("%s ", first.c_str());
-        log(rest...);
-    }
-    static void log(std::vector<double> only) {
-        printf("[ ");
-        for (std::vector<double>::iterator iter = only.begin();
-                iter != only.end();
-                iter++) {
-            if (*iter == (int)*iter) {
-                printf("%0.0f", *iter);
-            } else {
-                printf("%f", *iter);
-            }
-            if (iter != only.end() - 1) { printf(", "); }
-        }
-        printf(" ]\n");
-    }
-    template <typename... Args>
-    static void log(std::vector<double> only, Args... rest) {
-        printf("[ ");
-        for (std::vector<double>::iterator iter = only.begin();
-                iter != only.end();
-                iter++) {
-            if (*iter == (int)*iter) {
-                printf("%0.0f", *iter);
-            } else {
-                printf("%f", *iter);
-            }
-            if (iter != only.end() - 1) { printf(", "); }
-        }
-        printf(" ] ");
+    template<typename T, typename... Args>
+    static void log(T first, Args... rest) {
+        std::cout << representation(first) << std::string(" ");
         log(rest...);
     }
 };

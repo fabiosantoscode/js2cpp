@@ -108,6 +108,20 @@ it 'Can run some functions', () ->
     var obj = maker(5)
     obj.increment()
     console.log('obj.getValue()', obj.getValue())
+    console.log('Number(3)', Number(3))
+    console.log('Number(NaN)', Number(NaN))
+    console.log('Number("NaN")', Number("NaN"))
+    console.log('Number("32")', Number("32"))
+    console.log('Number("0x32")', Number("0x32"))
+    console.log('Number("0b10")', Number("0b10"))
+    console.log('Number("0o10")', Number("0o10"))
+    console.log('Number("010")', Number("010"))
+    console.log('String("foo")', String("foo"))
+    console.log('String(10)', String(10))
+    console.log('String(Math.PI)', String(Math.PI))
+    console.log('String(NaN)', String(NaN))
+    console.log('String(undefined)', String(undefined))
+    console.log('String([1,2,3])', String([1,2,3]))
     '''
 
   expected_result =
@@ -144,6 +158,20 @@ it 'Can run some functions', () ->
     process.env['FOO'] bar
     process.env.FOO bar
     obj.getValue() 8
+    Number(3) 3
+    Number(NaN) NaN
+    Number("NaN") NaN
+    Number("32") 32
+    Number("0x32") 50
+    Number("0b10") 2
+    Number("0o10") 8
+    Number("010") 10
+    String("foo") foo
+    String(10) 10
+    String(Math.PI) 3.141592653589793
+    String(NaN) NaN
+    String(undefined) undefined
+    String([1,2,3]) 1,2,3
     ''' + '\n'
 
   ok.equal(eval(
