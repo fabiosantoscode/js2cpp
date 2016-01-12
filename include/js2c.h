@@ -17,9 +17,6 @@
 
 namespace dumbjs_number_convert {
     double parse(std::string n, int base) {
-        if (base == 10) {
-            double ret = strtod(n.c_str(), NULL);
-        }
         return (double) strtol(n.c_str(), NULL, base);
     }
     std::string stringify(double n, int base) {
