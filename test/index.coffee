@@ -113,8 +113,6 @@ it 'Can run some functions', () ->
     console.log('Number("NaN")', Number("NaN"))
     console.log('Number("32")', Number("32"))
     console.log('Number("0x32")', Number("0x32"))
-    console.log('Number("0b10")', Number("0b10"))
-    console.log('Number("0o10")', Number("0o10"))
     console.log('Number("010")', Number("010"))
     console.log('String("foo")', String("foo"))
     console.log('String(10)', String(10))
@@ -163,8 +161,6 @@ it 'Can run some functions', () ->
     Number("NaN") NaN
     Number("32") 32
     Number("0x32") 50
-    Number("0b10") 2
-    Number("0o10") 8
     Number("010") 10
     String("foo") foo
     String(10) 10
