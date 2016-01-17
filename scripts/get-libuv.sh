@@ -5,7 +5,7 @@ cd deps
 
 echo "Fetching libuv..."
 
-git clone git@github.com:libuv/libuv.git
+git clone https://github.com/libuv/libuv
 cd libuv
 
 echo "Fetching gyp..."
