@@ -10,7 +10,7 @@ js2cpp should be usable some day. For now you can do crazy experiments on it :)
 
 Yeah, it actually does some things. This is how js2cpp handles strings:
 
-    $ echo '"lol" + "lel"' | coffee bin/js2cpp
+    $ echo '"lol" + "lel"' | bin/js2cpp
     #include "js2c.h"
     #include <string>
 
@@ -18,7 +18,7 @@ Yeah, it actually does some things. This is how js2cpp handles strings:
 
 And here's console.log!
 
-    $ echo 'console.log(1,2,3)' | coffee bin/js2cpp
+    $ echo 'console.log(1,2,3)' | bin/js2cpp
     #include "js2c.h"
     #include <string>
     
@@ -28,7 +28,7 @@ It works because there's a "console" instance of a "Console" class with a variad
 
 Here is tern.js figuring out a couple of types.
 
-    $ echo 'var aNumber = 1; var aString = "1";' | coffee bin/js2cpp
+    $ echo 'var aNumber = 1; var aString = "1";' | bin/js2cpp
     #include "js2c.h"
     #include <string>
     
@@ -41,7 +41,7 @@ Here is tern.js figuring out a couple of types.
  * Then, clone this repo and run `npm install`
  * Afterwards, you need to fetch and compile libuv. run `bash scripts/get-libuv.sh`. This *seems* to run on linux machines. If not, clone libuv into `deps/libuv`, compile it, and copy `libuv.a` into `deps`.
  * Optionally `npm test` just to make sure it works on your machine ;) If it doesn't please make an issue about it and I'll try to look into it. It tries to use the `g++` binary from your PATH. If you want to use another binary specify it with the `GPP_BINARY` environment variable, like so: `GPP_BINARY=g++-5 npm test`.
- * To compile some javascript, run `./bin/js2cpp < your-javascript.js > your-cee-plus-plus.cpp`. You may need coffeescript for this because I'm lazy!
+ * To compile some javascript, run `./bin/js2cpp < your-javascript.js > your-cee-plus-plus.cpp`.
  * Then compile your cpp file. (example with g++) `g++ -std=c++14 your-cee-plus-plus.cpp -Wall -Werror -O3 -I include/ -lrt`
  * Then run `./a.out` to run your program.
 
