@@ -11,3 +11,4 @@ addons:
     - g++-4.8
 env:
   - GPP_BINARY=g++-4.8
+before_script: bash scripts/get-libuv.sh
