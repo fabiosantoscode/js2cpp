@@ -13,10 +13,14 @@ output_of = (program) ->
   transpile program
   sh([
     process.env['GPP_BINARY'] or 'g++',
-    '-std=c++0x',
+    '-std=c++14',
     '/tmp/js2ctests.cpp',
     '-I include/',
+    '-I deps/libuv/include',
+    '-L deps',
     '-lrt',
+    '-lpthread',
+    'deps/libuv.a',
     '-O0',
     '-o /tmp/js2ctests.out',
   ].join ' ')
@@ -210,4 +214,61 @@ describe 'js2cpp', () ->
 
       x()
     """)
+
+describe 'libuv integration', () ->
+  it 'calls libuv_init before code starts', () ->
+    opt = undefined
+    fake_dumbjs = (_, _opt) -> opt = _opt
+    js2cpp '', { customDumbJs: fake_dumbjs }
+    ok.deepEqual(opt.mainify.prepend, [
+      {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'CallExpression',
+          callee: {
+            type: 'Identifier',
+            name: 'js2cpp_init_libuv'
+          },
+          arguments: [],
+        }
+      }
+    ])
+
+  describe 'functional tests', () ->
+    it 'timeouts', () ->
+      javascript_code = '''
+        process.nextTick(function() {
+          console.log('two');
+          clearTimeout(thatWhichShallNotBeRun);
+          setTimeout(function () {
+            console.log('three')
+            proceed()
+          }, 100)
+        })
+
+        console.log('one')
+
+        var thatWhichShallNotBeRun = setTimeout(function () {
+          console.log('fifteen!')
+        })
+
+        function proceed() {
+          var count = 3;
+          var interval = setInterval(function() {
+            console.log(count)
+            if (!--count) clearInterval(interval)
+          })
+        }
+      '''
+
+      expected_result = '''
+      one
+      two
+      three
+      3
+      2
+      1
+      ''' + '\n'
+
+      ok.equal(output_of(javascript_code), expected_result)
 

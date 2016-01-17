@@ -4,11 +4,13 @@
 #include <vector>
 #include <time.h>
 #include <cstdlib>
+#include <map>
 #include <functional>
 #include <algorithm>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include "uv.h"
 #define NaN NAN
 #define isNaN isnan
 // Temporary fix for how dumbjs transpiles commonJS modules.
@@ -178,28 +180,6 @@ class Math_ {
 
 Math_ Math;
 
-class Env {
-    public:
-    std::string operator [] (std::string variable) {
-        try {
-            return std::getenv(variable.c_str());
-        } catch (std::logic_error e) {
-            return std::string("");
-        }
-    }
-    std::string setenv (std::string variable, std::string value) {
-        ::setenv(variable.c_str(), value.c_str(), value.length());
-        return value;
-    }
-};
-
-class Process {
-    public:
-    Env env;
-};
-
-Process process;
-
 class Console {
     template<typename T>
     static std::string representation(std::vector<T> only) {
@@ -244,3 +224,102 @@ class Console {
 
 Console console;
 
+// Libuv integration
+void on_timeout_end(uv_timer_t*);
+void clearTimeout(double);
+namespace Js2cppLibuv {
+    uv_loop_t* loop;
+    std::map<uv_timer_t*, std::function<void (void)>> timeouts;
+    std::map<double, uv_timer_t*> opaque_handles;
+    std::map<uv_timer_t*, double> timer_to_opaque_handle;
+    double last_opaque_handle = 1;
+    void remove(double opaque_handle) {
+        auto timer = opaque_handles[opaque_handle];
+        if (timer == NULL) return;
+        uv_timer_stop(timer);
+        timeouts.erase(timer);
+        opaque_handles.erase(opaque_handle);
+        timer_to_opaque_handle.erase(timer);
+    }
+    void remove(uv_timer_t* timer) {
+        remove(timer_to_opaque_handle[timer]);
+    }
+    void timeout_end(uv_timer_t* timer) {
+        auto cb = timeouts[timer];
+        if (cb == NULL) return;
+        cb();
+    }
+    double add(std::function<void (void)> func, int timeout_time, bool is_interval = false) {
+        uv_timer_t *timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+        uv_timer_init(loop, timer);
+        timeouts[timer] = func;
+        opaque_handles[++last_opaque_handle] = timer;
+        if (!is_interval) {
+            uv_timer_start(timer, timeout_end, timeout_time, 0);
+        } else {
+            if (timeout_time < 1) timeout_time = 1;
+            uv_timer_start(timer, timeout_end, timeout_time, timeout_time);
+        }
+        return last_opaque_handle;
+    }
+    void init() {
+        loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
+        uv_loop_init(loop);
+    }
+    void run() {
+        uv_run(loop, UV_RUN_DEFAULT);
+    }
+};
+void js2cpp_init_libuv() { Js2cppLibuv::init(); };
+void js2cpp_run_libuv() { Js2cppLibuv::run(); };
+
+
+double setTimeout(auto * func, int timeout_time = 0) {
+    return Js2cppLibuv::add(*func, timeout_time);
+}
+void clearTimeout(double opaque_handle) {
+    Js2cppLibuv::remove(opaque_handle);
+}
+
+
+double setInterval(auto * func, int timeout_time = 0) {
+    return Js2cppLibuv::add(*func, timeout_time, /*is_interval=*/true);
+}
+void clearInterval(double opaque_handle) {
+    Js2cppLibuv::remove(opaque_handle);
+}
+
+
+double setImmediate(auto * func) {
+    return Js2cppLibuv::add(*func, 0);
+}
+void clearImmediate(double opaque_handle) {
+    Js2cppLibuv::remove(opaque_handle);
+}
+
+
+// Node things
+class Env {
+    public:
+    std::string operator [] (std::string variable) {
+        try {
+            return std::getenv(variable.c_str());
+        } catch (std::logic_error e) {
+            return std::string("");
+        }
+    }
+    std::string setenv (std::string variable, std::string value) {
+        ::setenv(variable.c_str(), value.c_str(), value.length());
+        return value;
+    }
+};
+
+class Process {
+    public:
+    Env env;
+    void nextTick(auto func) {
+        setImmediate(func);  /* Handle remains hidden */
+    }
+};
+
+Process process;

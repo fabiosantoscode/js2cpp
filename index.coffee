@@ -4,7 +4,7 @@ assert = require 'assert'
 dumbjs = require 'dumbjs/index'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
-{ Server, registerPlugin } = require 'tern'
+{ Server } = require 'tern'
 estraverse = require 'estraverse'
 es = require 'event-stream'
 
@@ -13,6 +13,7 @@ es = require 'event-stream'
 run_transforms = require('./transforms/index')
 { make_fake_class } = require './lib/fake-classes'
 cpp_types = require './lib/cpp-types'
+register_tern_plugins = require './lib/tern-plugins'
 
 # Annotate the AST with "func_at", "scope_at", "" properties which tell us what function a tree node belongs to
 annotate = (ast) ->
@@ -101,32 +102,7 @@ cleanup = (ast) ->
                     params: node.declarations[0].init.params,
                 }
 
-registerPlugin 'dumbjs_bind', (server) ->
-    assert server, 'no server!'
-    IsBound = tern.constraint({
-        construct: (self, target) ->
-            this.self = self
-            this.target = target
-        addType: (fn) ->
-            assert fn instanceof tern.Fn
-            assert fn.args.length
-            boundFunctionType = new tern.Fn(fn.name, tern.ANull, fn.args.slice(1), fn.argNames.slice(1), fn.retval)
-            boundFunctionType.isBoundFn = true
-            boundFunctionType.original = fn
-            this.target.addType(boundFunctionType)
-            this.self.propagate(fn.args[0])
-    })
-    tern.registerFunction 'dumbjsbindfunc', (_self, args) ->
-        assert args.length is 2, 'BIND called with ' + args.length + ' arguments!'
-        bound_function = new tern.AVal
-        args[0].propagate(new IsBound(args[1], bound_function))
-        return bound_function
-
-    server.addDefs({
-        'BIND': {
-            '!type': 'fn(func: fn(), closure: ?) -> !custom:dumbjsbindfunc',
-        }
-    })
+register_tern_plugins()
 
 # deal with dumbjs's bindify
 bindify = (ast) ->
@@ -150,17 +126,45 @@ bindify = (ast) ->
 global.to_put_before = undefined
 global.functions_that_need_bind = undefined
 global.boundfns_ive_seen = undefined
-module.exports = (js) ->
+module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} } = {}) ->
     server = new Server({})
-    server.loadPlugin('dumbjs_bind', {})
+    server.loadPlugin('js2cpp', {})
     server.reset()
     ctx = server.cx
     tern.withContext ctx, () ->
         global.to_put_before = []
         global.functions_that_need_bind = []
         global.boundfns_ive_seen = []
-        js = dumbjs(js)
-        ast = tern.parse(js)
+        if dumbJsOptions.mainify is undefined
+            dumbJsOptions.mainify = {}
+        if dumbJsOptions.mainify.prepend is undefined
+            dumbJsOptions.mainify.prepend = []
+        if dumbJsOptions.mainify.append is undefined
+            dumbJsOptions.mainify.append = []
+        dumbJsOptions.mainify.prepend.push({
+            type: 'ExpressionStatement',
+            expression: {
+                type: 'CallExpression',
+                callee: {
+                    type: 'Identifier',
+                    name: 'js2cpp_init_libuv'
+                },
+                arguments: [],
+            }
+        })
+        dumbJsOptions.mainify.append.push({
+            type: 'ExpressionStatement',
+            expression: {
+                type: 'CallExpression',
+                callee: {
+                    type: 'Identifier',
+                    name: 'js2cpp_run_libuv'
+                },
+                arguments: [],
+            }
+        })
+        js = customDumbJs(js, dumbJsOptions)
+        ast = tern.parse(js, {})
         ast = cleanup ast
         tern.analyze ast
         annotate ast
