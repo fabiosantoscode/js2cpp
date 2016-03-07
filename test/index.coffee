@@ -218,7 +218,7 @@ describe 'js2cpp', () ->
 describe 'libuv integration', () ->
   it 'calls libuv_init before code starts', () ->
     opt = undefined
-    fake_dumbjs = (_, _opt) -> opt = _opt
+    fake_dumbjs = (_, _opt) -> opt = _opt ; return ''
     js2cpp '', { customDumbJs: fake_dumbjs }
     ok.deepEqual(opt.mainify.prepend, [
       {
