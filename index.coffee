@@ -72,6 +72,12 @@ annotate = (ast) ->
                     assert type, 'Couldn\'t statically determine the type of ' + node.name
                     node.kind = type
 
+            if node.type is 'Literal'
+                if typeof node.value is 'number'
+                    node.kind = tern.cx().num
+                if typeof node.value is 'string'
+                    node.kind = tern.cx().str
+
             if node.type is 'MemberExpression'
                 node.kind = member_expression_kind(node)
 

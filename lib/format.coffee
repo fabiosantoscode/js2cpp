@@ -39,10 +39,16 @@ formatters =
                 return RAW_C "(*#{node.parent.callee.name})"
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
-            RAW_C "std::string(#{gen node})"
+            ret = RAW_C "std::string(#{gen node})"
+            ret.kind = node.kind
+            return ret
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
-        return RAW_C "std::vector<double>({ #{items.join(', ')} })"
+        types = (item.kind for item in node.elements)
+        array_type = types[0]
+        assert array_type isnt undefined, 'Creating an array of undefined'
+        assert(types.every((type) -> type is array_type), 'array of mixed types!')
+        return RAW_C "std::vector<#{ format_type array_type }>({ #{items.join(', ')} })"
     ObjectExpression: (node) ->
         assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
         { make_fake_class } = require './fake-classes'
@@ -92,8 +98,7 @@ formatters =
 format_params = (params) ->
     (format_decl param.kind, param.name for param in params).join ', '
 
-# Formats a type.
-# Examples: "number" -> "int", "undefined" -> "void"
+# Takes a tern type and formats it as a c++ type
 format_type = (type) ->
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)

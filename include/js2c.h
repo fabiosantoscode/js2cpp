@@ -187,7 +187,7 @@ class Console {
         for (typename std::vector<T>::iterator iter = only.begin();
                 iter != only.end();
                 iter++) {
-            s += representation(*iter);
+            s += long_representation(*iter);
             if (iter != only.end() - 1) { s += std::string(", "); }
         }
         s += (" ]");
@@ -209,6 +209,29 @@ class Console {
     }
     static std::string representation(std::string only) {
         return only;
+    }
+    static std::string long_representation(auto whatever) {
+        return representation(whatever);
+    }
+    static std::string long_representation(std::string a_string) {
+        std::string out = std::string("'");
+        for (auto iter = a_string.begin();
+                iter != a_string.end();
+                iter++) {
+            bool should_escape =
+                *iter == '\n' ||
+                *iter == '\r' ||
+                *iter == '\\' ||
+                *iter == '\'' ||
+                *iter == '\0';
+
+            if (should_escape) {
+                out += std::string("\\");
+            }
+            out.append(1, *iter);
+        }
+        out += std::string("'");
+        return out;
     }
     public:
     template<typename T>
