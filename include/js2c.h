@@ -10,12 +10,66 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <initializer_list>
 #include "uv.h"
 #define NaN NAN
 #define isNaN isnan
 // Temporary fix for how dumbjs transpiles commonJS modules.
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
+
+template<typename T>
+struct Array {
+    private:
+    std::vector<T> vec;
+    template<typename... Args>
+    void from_arg_pack(T first, Args... rest) {
+        from_arg_pack(first);
+        from_arg_pack(rest...);
+    }
+    void from_arg_pack(T only) {
+        vec.push_back(only);
+    }
+    public:
+    Array() {
+        vec = std::vector<T>();
+    }
+    Array(std::initializer_list<T> init) {
+        vec = std::vector<T>();
+        for (auto iter = init.begin();
+                iter != init.end();
+                iter++) {
+            vec.push_back(*iter);
+        }
+    }
+    template<typename... Args>
+    Array(Args... args) {
+        vec = std::vector<T>();
+        from_arg_pack(args...);
+    }
+    T operator[] (double index) {
+        int ind = index;
+        if (ind < 0 || ind >= vec.size()) {
+            return T();
+        }
+        return vec[ind];
+    }
+    auto begin() { return vec.begin(); }
+    auto end() { return vec.end(); }
+    auto size() { return vec.size(); }
+    double push(T value) {
+        vec.push_back(value);
+        return vec.size();
+    }
+    double indexOf(T needle) {
+        for (int i = 0; i < vec.size(); i++) {
+            if (vec[i] == needle) {
+                return i;
+            }
+        }
+        return -1;
+    }
+};
 
 namespace dumbjs_number_convert {
     double parse(std::string n, int base) {
@@ -37,11 +91,11 @@ namespace dumbjs_number_convert {
 std::string String (double);
 
 template<typename T>
-std::string String(std::vector<T> ary) {
+std::string String(Array<T> *ary) {
     std::string s("");
-    size_t len = ary.size();
+    size_t len = ary->size();
     for (size_t i = 0; i < len; i++) {
-        s += String(ary[i]);
+        s += String((*ary)[i]);
         if (i < len - 1)
             s += std::string(",");
     }
@@ -182,9 +236,13 @@ Math_ Math;
 
 class Console {
     template<typename T>
-    static std::string representation(std::vector<T> only) {
+    static std::string representation(Array<T> *only) {
+        return representation(*only);
+    }
+    template<typename T>
+    static std::string representation(Array<T> only) {
         std::string s("[ ");
-        for (typename std::vector<T>::iterator iter = only.begin();
+        for (auto iter = only.begin();
                 iter != only.end();
                 iter++) {
             s += long_representation(*iter);

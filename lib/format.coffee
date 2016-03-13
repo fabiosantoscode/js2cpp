@@ -55,13 +55,14 @@ formatters =
         array_type = types[0] or tern.ANull
         assert array_type isnt undefined, 'Creating an array of an unknown type'
         assert(types.every((type) -> type is array_type), 'array of mixed types!')
-        return RAW_C "std::vector<#{ format_type array_type }>({ #{items.join(', ')} })", { original: node }
+        return RAW_C "(new Array<#{ format_type array_type }>({ #{items.join(', ')} }))", { original: node }
     ObjectExpression: (node) ->
         assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
         { make_fake_class } = require './fake-classes'
         fake_class = make_fake_class(get_type(node, false))
         return RAW_C "new #{fake_class.name}()", { original: node }
     VariableDeclaration: (node) ->
+        assert node.declarations.length is 1
         decl = node.declarations[0]
         sides = [
             "#{format_decl get_type(node, false), decl.id.name}"]
@@ -121,7 +122,7 @@ format_type = (type) ->
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
         if arr_types.length == 1
-            return "std::vector<#{format_type arr_types}>"
+            return "Array<#{format_type arr_types}> *"
         throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
 
     if type instanceof tern.Obj

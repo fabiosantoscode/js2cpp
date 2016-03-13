@@ -9,3 +9,7 @@ var y = [ 'lel' ];
 
 console.log(y, y[0]);
 
+y.push('foo')
+
+console.log(y)
+

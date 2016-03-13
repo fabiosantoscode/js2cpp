@@ -125,6 +125,14 @@ describe 'js2cpp', () ->
       console.log('String(NaN)', String(NaN))
       console.log('String(undefined)', String(undefined))
       console.log('String([1,2,3])', String([1,2,3]))
+
+      console.log('\\n---\\n')
+
+      var arr = [ 1 ]
+      arr.push(2)
+      console.log('arr.indexOf(0)', arr.indexOf(0))
+      console.log('arr.indexOf(1)', arr.indexOf(1))
+      console.log('arr.indexOf(2)', arr.indexOf(2))
       '''
 
     expected_result =
@@ -173,6 +181,12 @@ describe 'js2cpp', () ->
       String(NaN) NaN
       String(undefined) undefined
       String([1,2,3]) 1,2,3
+
+      ---
+
+      arr.indexOf(0) -1
+      arr.indexOf(1) 0
+      arr.indexOf(2) 1
       ''' + '\n'
 
     ok.equal(eval(
