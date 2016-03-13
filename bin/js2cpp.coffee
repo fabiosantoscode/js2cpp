@@ -1,7 +1,10 @@
 #!/usr/bin/env coffee
 
-js2cpp = require '../index'
+child_process = require 'child_process'
+path = require 'path'
 fs = require 'fs'
+
+js2cpp = require '../index'
 
 cli = (inpt, outp = null, cb) ->
     read_string_or_stream(inpt)
@@ -13,6 +16,52 @@ cli = (inpt, outp = null, cb) ->
 
 cli.sync = (inpt) ->
     return js2cpp inpt
+
+cli.run = (inpt, run_args) ->
+    binary_path = process.cwd() + '/a.out'
+    cli(inpt)
+    .then (cpp_code) ->
+        compile_command = process.env['GPP_BINARY'] or 'g++'
+
+        relative = (pt) -> path.join(__dirname, '..', pt)
+        args = [
+            '-std=c++14',
+            '-x', 'c++',  # Take an input c++ file as STDIN
+            '-'
+            '-x', 'none',  # And the following files aren't c++, start autodetecting pls
+            '-I', relative('include/'),
+            '-I', relative('deps/libuv/include'),
+            '-L', relative('deps'),
+            '-lrt',
+            '-lpthread',
+            relative('deps/libuv.a'),
+            '-o', binary_path,
+        ]
+
+        return new Promise (resolve, reject) ->
+            compiler = child_process.spawn(compile_command, args)
+            compiler.stderr.pipe(process.stderr)
+            compiler.stdin.write(cpp_code + '\n')
+            compiler.stdin.end()
+            compiler.on 'exit', (status_code) ->
+                compiler.stderr.unpipe(process.stderr)
+                if status_code is 0
+                    resolve()
+                else
+                    reject({ status_code })
+    .then () ->
+        return new Promise (resolve) ->
+            program = child_process.spawn(binary_path, run_args or [])
+            program.stderr.pipe(process.stderr)
+            program.stdout.pipe(process.stdout)
+            process.stdin.pipe(program.stdin)
+            program.on 'exit', (status_code) ->
+                try
+                    fs.unlinkSync binary_path
+                if status_code is 0
+                    resolve()
+                else
+                    reject({ status_code })
 
 module.exports = cli
 

@@ -2,18 +2,41 @@
 
 require('coffee-script/register')
 var fs = require('fs')
+var cli = require('./js2cpp.coffee')
+var path = require('path')
 
 var input = process.stdin;
 var output = process.stdout;
-if (process.argv[2]) {
-  input = fs.createReadStream(process.argv[2])
+
+if (process.argv[2] == '--run') {
+  var args = process.argv.slice(3)
+  if (process.argv[3] && process.argv[3] !== '--') {
+    input = fs.createReadStream(process.argv[3])
+    args = process.argv.slice(4)
+  } else if (process.argv[3] === '--') {
+    input = process.stdin;
+    args = process.argv.slice(4)
+  }
+  cli.run(input, args).then(function () {
+    process.exit(0)  // TODO find out why this hangs
+  }, function (err) {
+    if (err.status_code) {
+      return process.exit(err.status_code)
+    }
+    console.error('Error compiling')
+    onError(err)
+  })
+} else {
+  if (process.argv[2])
+    input = fs.createReadStream(process.argv[2])
+  if (process.argv[3])
+    output = fs.createWriteStream(process.argv[3])
+  cli(input, output).catch(onError)
 }
-if (process.argv[3]) {
-  output = fs.createWriteStream(process.argv[3])
-}
-require('./js2cpp.coffee')(input, output).catch(function (err) {
+
+function onError (err) {
   if (err) {
     console.error(err.stack || err)
     process.exit(1)
   }
-})
+}
