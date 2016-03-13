@@ -3,11 +3,11 @@ fs = require 'fs'
 sh = require('child_process').execSync
 js2cpp = require '..'
 dumbjs = require 'dumbjs'
+cli = require '../bin/js2cpp.coffee'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 
 transpile = (program) ->
-  fs.writeFileSync '/tmp/js2ctests.js', program
-  sh 'bin/js2cpp < /tmp/js2ctests.js > /tmp/js2ctests.cpp'
+  return fs.writeFileSync('/tmp/js2ctests.cpp', cli.sync(program))
 
 output_of = (program) ->
   transpile program
@@ -221,7 +221,7 @@ describe 'js2cpp', () ->
     ok.equal(output_of(javascript_code), expected_result)
 
   it 'regression: cannot transpile functions with arguments', () ->
-    transpile("""
+    return cli.sync("""
       function x() {
         return 6
       }

@@ -6,7 +6,6 @@ bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
 { Server } = require 'tern'
 estraverse = require 'estraverse'
-es = require 'event-stream'
 
 { format } = require('./lib/format')
 { gen } = require('./lib/gen')
@@ -42,7 +41,7 @@ annotate = (ast) ->
                     node.kind = type
 
             if node.type is 'MemberExpression'
-                node.kind = cpp_types.get_type(node).getType(false)
+                node.kind = cpp_types.get_type(node, false)
 
             return node
         leave: (node) ->

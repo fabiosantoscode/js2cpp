@@ -1,4 +1,19 @@
 #!/usr/bin/env node
 
 require('coffee-script/register')
-require('./js2cpp.coffee')
+var fs = require('fs')
+
+var input = process.stdin;
+var output = process.stdout;
+if (process.argv[2]) {
+  input = fs.createReadStream(process.argv[2])
+}
+if (process.argv[3]) {
+  output = fs.createWriteStream(process.argv[3])
+}
+require('./js2cpp.coffee')(input, output).catch(function (err) {
+  if (err) {
+    console.error(err.stack || err)
+    process.exit(1)
+  }
+})
