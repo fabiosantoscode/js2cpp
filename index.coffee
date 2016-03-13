@@ -21,7 +21,6 @@ annotate = (ast) ->
     var_stack = []
     scope_stack = [tern.cx().topScope]
     cur_fun = () -> fun_stack[fun_stack.length - 1]
-    cur_var = () -> var_stack[var_stack.length - 1]
     cur_scope = () -> scope_stack[scope_stack.length - 1]
     unroll_member_expression_into_array = (membex) ->
         if membex.object.type is 'MemberExpression'
@@ -54,7 +53,6 @@ annotate = (ast) ->
             Object.defineProperty node, 'parent',
                 enumerable: false, get: () -> parent
             node.scope_at = cur_scope()
-            node.cur_var = cur_var()
             if node.type is 'VariableDeclaration'
                 var_stack.push node
             if node.type is 'FunctionDeclaration' or
