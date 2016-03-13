@@ -11,10 +11,19 @@ gen = (ast) ->
 
 raw_c_sentinel = {}
 
-RAW_C = (raw_c) ->
-    type: 'Literal'
-    value: raw_c_sentinel  # Escodegen will check this against the value in escode
-    raw: raw_c
+get_type = (args...) ->
+    get_type = require('./cpp-types').get_type
+    return get_type(args...)
+
+RAW_C = (raw_c, { original } = {}) ->
+    assert original, 'call RAW_C with the original node, so as to propagate type information'
+    kind = get_type original
+    return {
+        type: 'Literal',
+        value: raw_c_sentinel,  # Escodegen will check this against the value in escode
+        raw: raw_c,
+        kind: kind
+    }
 
 
 # Using this function we cheat escodegen into giving us raw C code when we say it is "Literal"

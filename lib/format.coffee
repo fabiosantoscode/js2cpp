@@ -4,6 +4,11 @@ tern = require 'tern/lib/infer'
 standard_library_objects = require('./standard-library-objects.json')
 { gen, RAW_C } = require './gen'
 
+# Dependency loop lol
+get_type = (args...) ->
+    get_type = require('./cpp-types').get_type
+    return get_type(args...)
+
 #############
 # Formatting (outputing) our C++!
 
@@ -18,63 +23,65 @@ formatters =
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects
-            return RAW_C obj + '.' + prop
+            return RAW_C obj + '.' + prop, { original: node }
         if node.parent.type is 'CallExpression' and
                 node.parent.callee is node and
-                node.kind
-            if node.kind in functions_that_need_bind or node.kind.original in functions_that_need_bind
+                get_type(node, false)
+            if get_type(node, false) in functions_that_need_bind or get_type(node, false).original in functions_that_need_bind
                 # Calling one of our functors
-                return RAW_C "(*#{obj}->#{prop})"
+                return RAW_C "(*#{obj}->#{prop})", { original: node }
         if node.computed
-            return RAW_C "#{obj}[#{prop}]"
-        return RAW_C obj + '->' + prop
+            needs_deref = get_type(node.object) instanceof tern.Arr
+            if needs_deref
+                obj = "(*#{obj})"
+            return RAW_C "#{obj}[#{prop}]", { original: node }
+        return RAW_C obj + '->' + prop, { original: node }
     CallExpression: (node) ->
         if node.callee.type is 'NewExpression' and
                 /^_flatten/.test(gen(node.callee.callee))
-            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})"
+            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})", { original: node }
     Identifier: (node) ->
-        if node.parent.type is 'CallExpression' and node.kind
-            if node.parent.callee.type is 'Identifier' and node.parent.callee.kind in functions_that_need_bind or node.parent.callee.kind?.original in functions_that_need_bind
+        if node.parent.type is 'CallExpression' and get_type(node, false)
+            callee = node.parent.callee
+            if callee.type is 'Identifier' and get_type(callee, false) in functions_that_need_bind or get_type(callee, false)?.original in functions_that_need_bind
                 # Calling one of our functors again
-                return RAW_C "(*#{node.parent.callee.name})"
+                return RAW_C "(*#{node.parent.callee.name})", { original: node }
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
-            ret = RAW_C "std::string(#{gen node})"
-            ret.kind = node.kind
-            return ret
+            return RAW_C "std::string(#{gen node})", { original: node }
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
-        types = (item.kind for item in node.elements)
-        array_type = types[0]
-        assert array_type isnt undefined, 'Creating an array of undefined'
+        types = (get_type(item, false) for item in node.elements)
+        array_type = types[0] or tern.ANull
+        assert array_type isnt undefined, 'Creating an array of an unknown type'
         assert(types.every((type) -> type is array_type), 'array of mixed types!')
-        return RAW_C "std::vector<#{ format_type array_type }>({ #{items.join(', ')} })"
+        return RAW_C "std::vector<#{ format_type array_type }>({ #{items.join(', ')} })", { original: node }
     ObjectExpression: (node) ->
         assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
         { make_fake_class } = require './fake-classes'
-        fake_class = make_fake_class(node.kind)
-        return RAW_C "new #{fake_class.name}()"
+        fake_class = make_fake_class(get_type(node, false))
+        return RAW_C "new #{fake_class.name}()", { original: node }
     VariableDeclaration: (node) ->
         decl = node.declarations[0]
         sides = [
-            "#{format_decl node.kind, decl.id.name}"]
+            "#{format_decl get_type(node, false), decl.id.name}"]
         semicolon = ';'
         semicolon = '' if node.parent.type is 'ForStatement'
         if decl.init
             sides.push "#{gen format decl.init}"
-        RAW_C(sides.join(' = ') + semicolon)
+        RAW_C((sides.join(' = ') + semicolon), { original: node })
     FunctionDeclaration: (node) ->
-        return_type = format_type node.kind.retval.getType(false)
+        return_type = format_type get_type(node, false).retval.getType(false)
         if node.id.name is 'main'
             return_type = 'int'
-            return RAW_C "#{return_type} #{node.id.name}
+            return RAW_C("#{return_type} #{node.id.name}
                 (#{format_params node.params})
-                #{gen format node.body}"
+                #{gen format node.body}", { original: node })
 
         params = node.params
         if /^_closure/.test(params[0]?.name)
             closure_name = params.shift()
-            closure_decl = format_decl closure_name.kind, closure_name.name
+            closure_decl = format_decl(get_type(closure_name, false), closure_name.name)
             # TODO check if functions actually need forward declarations first. Maybe.
             to_put_before.push """
                 struct #{node.id.name} {
@@ -83,20 +90,20 @@ formatters =
                     #{return_type} operator() (#{format_params params});
                 };
             """
-            return RAW_C "
+            return RAW_C("
                 #{return_type} #{node.id.name}::operator() (#{format_params params}) #{gen format node.body}
-            "
+            ", { original: node })
         else
             # TODO check if functions actually need forward declarations first. Maybe.
             to_put_before.push """
                  #{return_type} #{node.id.name} (#{format_params params});
             """
-            return RAW_C "
+            return RAW_C("
                 #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
-            "
+            ", { original: node })
 
 format_params = (params) ->
-    (format_decl param.kind, param.name for param in params).join ', '
+    (format_decl get_type(param, false), param.name for param in params).join ', '
 
 # Takes a tern type and formats it as a c++ type
 format_type = (type) ->
@@ -133,6 +140,7 @@ format_type = (type) ->
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
 format_decl = (type, name) ->
+    assert type, 'format_decl called without a type!'
     assert name, 'format_decl called without a name!'
     return [format_type(type), name].join(' ')
 

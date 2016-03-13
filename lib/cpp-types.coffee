@@ -1,5 +1,6 @@
 assert = require 'assert'
 { gen } = require './gen'
+tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
 { make_fake_class } = require './fake-classes'
 
@@ -38,32 +39,19 @@ cpp_types = (ast) ->
                 retype_decl node
             if node.type in ['FunctionDeclaration', 'FunctionExpression']
                 retype_fun node
-            if node.type is 'Identifier' && node.scope_at.hasProp(node.name)
-                node.kind = type_of node, node.name
-                assert node.kind, 'couldn\'t find a type for node' + gen node
-            if node.type is 'ObjectExpression'
-                if parent.type is 'VariableDeclarator'
-                    node.kind = type_of node, parent.id.name
-                    assert node.kind, 'couldn\'t find a type for variable declarator ' + gen node
-                else if parent.type is 'ReturnStatement'
-                    type = parent.func_at.kind.retval.getType(false)
-                    class_of = make_fake_class type
-                    node.kind = type
-                else if parent.type is 'AssignmentExpression' and
-                        parent.left.type is 'MemberExpression'
-                    # For declaring objects inside closures: _closure_0.someObj = {}
-                    # We really need a definitive solution for getting
-                    # the kind of something, short of using \.kind.
-                    # Tern knows much more than we can infer with
-                    # these simple cases, but I can't seem to coerce
-                    # it to give me the information.
-                    # halp?
-                    type = parent.left.kind  # inferred in index.coffee for some reason, but can't be moved here because it must be before this runs.
-                    assert type
-                    make_fake_class type
-                    node.kind = type
-                else
-                    assert false, 'object is in weird place, cannot find its kind inside a ' + parent.type
             return node
 
+get_type = (node, abstract_val_ok = true) ->
+    if node.kind
+        # "kind" forced through a property in the object
+        return node.kind
+    assert node, 'pass a node to get_type!'
+    assert node.scope_at, 'the node passed to get_type must have a scope!'
+    type = tern.expressionType({ node: node, state: node.scope_at })
+    if abstract_val_ok
+        return type
+    return type.getType(false)
+
 module.exports = cpp_types
+module.exports.get_type = get_type
+

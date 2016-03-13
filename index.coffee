@@ -18,48 +18,19 @@ register_tern_plugins = require './lib/tern-plugins'
 # Annotate the AST with "func_at", "scope_at", "" properties which tell us what function a tree node belongs to
 annotate = (ast) ->
     fun_stack = []
-    var_stack = []
     scope_stack = [tern.cx().topScope]
     cur_fun = () -> fun_stack[fun_stack.length - 1]
     cur_scope = () -> scope_stack[scope_stack.length - 1]
-    unroll_member_expression_into_array = (membex) ->
-        if membex.object.type is 'MemberExpression'
-            res = unroll_member_expression_into_array(membex.object)
-            if res is undefined
-                return res
-            return res.concat([membex.property])
-        else if membex.object.type is 'Identifier'
-            return [membex.object, membex.property]
-        else
-            return undefined
 
-    member_expression_kind = (membex) ->
-        identifiers = unroll_member_expression_into_array(membex)
-
-        if identifiers is undefined
-            return
-
-        return identifiers.reduce((accum, ident) ->
-            if accum is undefined
-                return undefined
-            prop = accum.hasProp(
-                if ident.type is 'Identifier' then ident.name else '<i>'
-            )?.getType(false)
-            return prop or undefined
-        , cur_scope())
     estraverse.traverse ast,
         enter: (node, parent) ->
-            node.func_at = cur_fun()
             Object.defineProperty node, 'parent',
                 enumerable: false, get: () -> parent
             node.scope_at = cur_scope()
-            if node.type is 'VariableDeclaration'
-                var_stack.push node
             if node.type is 'FunctionDeclaration' or
                     node.type is 'FunctionExpression'
                 fun_stack.push node
                 scope_stack.push(node.scope or node.body.scope or cur_scope())
-                node.closure = cur_scope()
 
             if node.type is 'Identifier' and
                     parent isnt cur_fun() and
@@ -70,19 +41,11 @@ annotate = (ast) ->
                     assert type, 'Couldn\'t statically determine the type of ' + node.name
                     node.kind = type
 
-            if node.type is 'Literal'
-                if typeof node.value is 'number'
-                    node.kind = tern.cx().num
-                if typeof node.value is 'string'
-                    node.kind = tern.cx().str
-
             if node.type is 'MemberExpression'
-                node.kind = member_expression_kind(node)
+                node.kind = cpp_types.get_type(node).getType(false)
 
             return node
         leave: (node) ->
-            if node.type is 'VariableDeclaration'
-                var_stack.pop()
             if node.type in ['FunctionExpression', 'FunctionDeclaration']
                 fun_stack.pop()
                 scope_stack.pop()
@@ -114,8 +77,8 @@ bindify = (ast) ->
     estraverse.replace ast, enter: (node, parent) ->
         if node.type is 'CallExpression' and node.callee.name is 'BIND'
             assert node.arguments.length is 2
-            assert node.arguments[0].kind, "couldn\'t stactically determine the type of #{gen format node.arguments[0]}"
-            funcType = node.arguments[0].kind
+            assert cpp_types.get_type(node.arguments[0], false), "couldn\'t stactically determine the type of #{gen format node.arguments[0]}"
+            funcType = cpp_types.get_type(node.arguments[0], false)
             if funcType.original
                 funcType = funcType.original
             functions_that_need_bind.push(funcType)
