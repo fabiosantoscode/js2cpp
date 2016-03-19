@@ -20,6 +20,17 @@ format = (ast) ->
 
 # Some formatters
 formatters =
+    UnaryExpression: (node) ->
+        if node.operator is 'typeof'
+            arg = node.argument
+            if arg.type is 'Identifier' and
+                    not node.scope_at.hasProp(arg.name)
+                # typical Javascript feature detection
+                type_name = if arg.name not in standard_library_objects then 'undefined' else 'object'
+                return RAW_C "std::string(\"#{type_name}\")
+                    /* was: typeof #{arg.name}*/", { original: node }
+
+            return RAW_C "typeof(#{gen format arg})", { original: node }
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects

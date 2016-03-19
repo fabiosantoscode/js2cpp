@@ -133,6 +133,16 @@ describe 'js2cpp', () ->
       console.log('arr.indexOf(0)', arr.indexOf(0))
       console.log('arr.indexOf(1)', arr.indexOf(1))
       console.log('arr.indexOf(2)', arr.indexOf(2))
+
+      console.log('\\n--- typeof\\n')
+
+      console.log('typeof "lel"', typeof "lel")
+      console.log('typeof 4', typeof 4)
+      console.log('typeof 0', typeof 0)
+      console.log('typeof undefined', typeof undefined)
+      console.log('typeof {}', typeof {})
+      console.log('typeof process', typeof process)
+      console.log('typeof window', typeof window)
       '''
 
     expected_result =
@@ -187,6 +197,16 @@ describe 'js2cpp', () ->
       arr.indexOf(0) -1
       arr.indexOf(1) 0
       arr.indexOf(2) 1
+
+      --- typeof
+
+      typeof "lel" string
+      typeof 4 number
+      typeof 0 number
+      typeof undefined undefined
+      typeof {} object
+      typeof process object
+      typeof window undefined
       ''' + '\n'
 
     ok.equal(eval(

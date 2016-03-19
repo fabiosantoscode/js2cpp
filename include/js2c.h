@@ -18,6 +18,11 @@
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
 
+std::string typeof(double _) { return "number"; }
+std::string typeof(int _) { return "number"; }
+std::string typeof(std::string _) { return "string"; }
+std::string typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
+
 template<typename T>
 struct Array {
     private:
