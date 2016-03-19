@@ -401,6 +401,9 @@ class Process {
     void nextTick(auto func) {
         setImmediate(func);  /* Handle remains hidden */
     }
+    void exit(int exit_code = 0) {
+        ::exit(exit_code);
+    }
 };
 
 Process process;

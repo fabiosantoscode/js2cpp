@@ -17,8 +17,8 @@ if (process.argv[2] == '--run') {
     input = process.stdin;
     args = process.argv.slice(4)
   }
-  cli.run(input, args).then(function () {
-    process.exit(0)  // TODO find out why this hangs
+  cli.run(input, args).then(function (programRun) {
+    process.exit(programRun.status_code || 0)
   }, function (err) {
     if (err.status_code) {
       return process.exit(err.status_code)

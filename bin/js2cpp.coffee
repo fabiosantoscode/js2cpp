@@ -58,10 +58,7 @@ cli.run = (inpt, run_args) ->
             program.on 'exit', (status_code) ->
                 try
                     fs.unlinkSync binary_path
-                if status_code is 0
-                    resolve()
-                else
-                    reject({ status_code })
+                resolve({ status_code })
 
 module.exports = cli
 
