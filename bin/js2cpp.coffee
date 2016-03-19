@@ -52,13 +52,24 @@ cli.run = (inpt, run_args) ->
     .then () ->
         return new Promise (resolve) ->
             program = child_process.spawn(binary_path, run_args or [])
+            promiseForEndedStreams = new Promise (resolve) ->
+                stdoutEnded = false
+                stderrEnded = false
+                tryFinish = () ->
+                    if stdoutEnded and stderrEnded
+                        resolve()
+                program.stderr.on('end', () -> stderrEnded = true; tryFinish())
+                program.stdout.on('end', () -> stdoutEnded = true; tryFinish())
+                program.stderr.on('error', () -> stderrEnded = true; tryFinish())
+                program.stdout.on('error', () -> stdoutEnded = true; tryFinish())
             program.stderr.pipe(process.stderr)
             program.stdout.pipe(process.stdout)
             process.stdin.pipe(program.stdin)
             program.on 'exit', (status_code) ->
                 try
                     fs.unlinkSync binary_path
-                resolve({ status_code })
+                promiseForEndedStreams.then () ->
+                    resolve({ status_code })
 
 module.exports = cli
 
