@@ -2,7 +2,7 @@
   "name": "js2cpp",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "mocha -t 20000 --compilers coffee:coffee-script/register"
   },

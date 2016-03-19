@@ -4,7 +4,7 @@ child_process = require 'child_process'
 path = require 'path'
 fs = require 'fs'
 
-js2cpp = require '../index'
+js2cpp = require '.'
 
 cli = (inpt, outp = null, cb) ->
     read_string_or_stream(inpt)

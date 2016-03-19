@@ -1,9 +1,9 @@
 ok = require 'assert'
 fs = require 'fs'
 sh = require('child_process').execSync
-js2cpp = require '..'
+js2cpp = require '../lib/index'
 dumbjs = require 'dumbjs'
-cli = require '../bin/js2cpp.coffee'
+cli = require '../lib/cli'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 
 transpile = (program) ->

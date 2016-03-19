@@ -1,6 +1,6 @@
 estraverse = require 'estraverse'
-{ format } = require('../lib/format')
-{ gen, RAW_C } = require('../lib/gen')
+{ format } = require('../format')
+{ gen, RAW_C } = require('../gen')
 
 module.exports = (ast) ->
     estraverse.replace ast,
