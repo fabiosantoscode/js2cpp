@@ -75,8 +75,9 @@ formatters =
         return_type = format_type get_type(node, false).retval.getType(false)
         if node.id.name is 'main'
             return_type = 'int'
+            assert node.params.length is 0
             return RAW_C("#{return_type} #{node.id.name}
-                (#{format_params node.params})
+                (int argc, char* argv[])
                 #{gen format node.body}", { original: node })
 
         params = node.params

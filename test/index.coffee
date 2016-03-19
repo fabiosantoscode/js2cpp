@@ -245,6 +245,20 @@ describe 'libuv integration', () ->
           },
           arguments: [],
         }
+      },
+      {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'CallExpression',
+          callee: {
+            type: 'Identifier',
+            name: 'js2cpp_init_argv'
+          },
+          arguments: [
+            { type: 'Identifier', name: 'argc' },
+            { type: 'Identifier', name: 'argv' },
+          ],
+        }
       }
     ])
 

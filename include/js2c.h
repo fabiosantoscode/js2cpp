@@ -28,18 +28,20 @@ struct Array {
         from_arg_pack(rest...);
     }
     void from_arg_pack(T only) {
-        vec.push_back(only);
+        push(only);
     }
     public:
+    double length;
     Array() {
         vec = std::vector<T>();
+        length = 0;
     }
     Array(std::initializer_list<T> init) {
         vec = std::vector<T>();
         for (auto iter = init.begin();
                 iter != init.end();
                 iter++) {
-            vec.push_back(*iter);
+            push(*iter);
         }
     }
     template<typename... Args>
@@ -59,7 +61,8 @@ struct Array {
     auto size() { return vec.size(); }
     double push(T value) {
         vec.push_back(value);
-        return vec.size();
+        length += 1;
+        return length;
     }
     double indexOf(T needle) {
         for (int i = 0; i < vec.size(); i++) {
@@ -191,7 +194,7 @@ class Math_ {
     double floor(double n) { return ::floor(n); }
     // double fround(double n) { return }
     // double hypot(double n) { return }
-    double imul(double a, double b) { return a * b; }
+    double imul(double a, double b) { return ((int)a) * ((int)b); }
     double log(double n) { return ::log(n); }
     // double log10(double n) { return }
     // double log1p(double n) { return }
@@ -398,6 +401,7 @@ class Env {
 class Process {
     public:
     Env env;
+    Array<std::string> * argv;
     void nextTick(auto func) {
         setImmediate(func);  /* Handle remains hidden */
     }
@@ -407,3 +411,18 @@ class Process {
 };
 
 Process process;
+
+void js2cpp_init_argv(int argc, char* argv[]) {
+    process.argv = new Array<std::string>();
+    // Put something in process.argv[0], so that the user's application may be the second argument.
+    // since node scripts expect their arguments to start with the node runtime and then just read arguments from argv[2] on
+    // that means something has to be here.
+    //
+    // TODO in the future create js2cpp-node command so it may be the first argument,
+    // and the javascript file that generated the program, the second argument.
+    process.argv->push(std::string("/usr/bin/env"));
+    int index = 0;
+    for (int i = 0; i < argc; i++) {
+        process.argv->push(std::string(argv[i]));
+    }
+}
