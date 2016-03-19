@@ -49,6 +49,12 @@ formatters =
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             return RAW_C "std::string(#{gen node})", { original: node }
+        if typeof node.value is 'number'
+            if node.value == Math.floor(node.value)
+                # All numbers are doubles. But since c++ can't tell between an int and a bool
+                # the console.log representation of an "int" is "true" or "false"
+                # To avoid console.log(0) yielding "true", specify the number's type here.
+                return RAW_C "#{node.value}.0f", { original: node }
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
         types = (get_type(item, false) for item in node.elements)
