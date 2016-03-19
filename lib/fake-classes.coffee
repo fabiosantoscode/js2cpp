@@ -11,6 +11,10 @@ _fake_class_exists = ({ decl_strings }) ->
         if cls.decl_strings.join(';') == decl_strings.join(';')
             return cls
 
+get_fake_classes = () -> Object.freeze _fake_classes
+
+clear_fake_classes = () ->
+    _fake_classes = []
 
 _make_fake_class = (type) ->
     decls = ([type.props[prop].getType(false), prop] for prop in Object.keys type.props)
@@ -78,5 +82,5 @@ make_fake_class = (type, { assert_exists } = {}) ->
 
 
 
-module.exports = { make_fake_class }
+module.exports = { make_fake_class, get_fake_classes, clear_fake_classes }
 

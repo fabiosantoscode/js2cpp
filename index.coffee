@@ -10,7 +10,7 @@ estraverse = require 'estraverse'
 { format } = require('./lib/format')
 { gen } = require('./lib/gen')
 run_transforms = require('./transforms/index')
-{ make_fake_class } = require './lib/fake-classes'
+{ clear_fake_classes, get_fake_classes } = require './lib/fake-classes'
 cpp_types = require './lib/cpp-types'
 register_tern_plugins = require './lib/tern-plugins'
 
@@ -101,6 +101,7 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
         global.to_put_before = []
         global.functions_that_need_bind = []
         global.boundfns_ive_seen = []
+        clear_fake_classes()
         if dumbJsOptions.mainify is undefined
             dumbJsOptions.mainify = {}
         if dumbJsOptions.mainify.prepend is undefined
@@ -157,6 +158,7 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
         #include <string>
         \n
         """
+        before_c += get_fake_classes().map(({ name }) -> 'struct ' + name + ';').join('\n') + '\n\n'
         before_c += (global.to_put_before.join '\n') + '\n\n'
         c = gen(pseudo_c_ast)
         return before_c + c
