@@ -75,10 +75,10 @@ formatters =
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
         types = (get_type(item, false) for item in node.elements)
-        array_type = types[0] or tern.ANull
-        assert array_type isnt undefined, 'Creating an array of an unknown type'
-        assert(types.every((type) -> type is array_type), 'array of mixed types!')
-        return RAW_C "(new Array<#{ format_type array_type }>({ #{items.join(', ')} }))", { original: node }
+        array_type = format_type types[0] or tern.ANull
+        assert array_type isnt 'void', 'Creating an array of an unknown type'
+        assert(types.every((type) -> format_type(type) is array_type), 'array of mixed types!')
+        return RAW_C "(new Array<#{ array_type }>({ #{items.join(', ')} }))", { original: node }
     ObjectExpression: (node) ->
         assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
         { make_fake_class } = require './fake-classes'
@@ -106,7 +106,7 @@ formatters =
             closure_decl = format_decl(get_type(closure_name, false), closure_name.name)
             # TODO check if functions actually need forward declarations first. Maybe.
             to_put_before.push """
-                struct #{node.id.name} {
+                struct #{node.id.name} : public Functor {
                     #{closure_decl};
                     #{node.id.name}(#{closure_decl}):_closure(_closure) { }
                     #{return_type} operator() (#{format_params params});
@@ -143,8 +143,11 @@ format_type = (type, pointer_if_necessary = true) ->
         return type.toString()
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
-        if arr_types.length == 1
-            return ptr "Array<#{format_type arr_types}>"
+        type_strings = arr_types.map (t) -> format_type(t.getType(false))
+
+        if arr_types.length == 1 or
+                type_strings.every((type) -> type is type_strings[0])
+            return ptr "Array<#{type_strings[0]}>"
         throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
 
     if type?.origin == 'ecma6'
