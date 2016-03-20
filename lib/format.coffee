@@ -51,6 +51,12 @@ formatters =
         if node.callee.type is 'NewExpression' and
                 /^_flatten/.test(gen(node.callee.callee))
             return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})", { original: node }
+    NewExpression: (node) ->
+        type = get_type(node, false)
+        if type and type.name is 'Map' and type.origin is 'ecma6'
+            return RAW_C "new #{
+                    format_type(type, false)
+                }()", { original: node }
     Identifier: (node) ->
         if node.parent.type is 'CallExpression' and get_type(node, false)
             callee = node.parent.callee
@@ -125,7 +131,8 @@ format_params = (params) ->
     (format_decl get_type(param, false), param.name for param in params).join ', '
 
 # Takes a tern type and formats it as a c++ type
-format_type = (type) ->
+format_type = (type, pointer_if_necessary = true) ->
+    ptr = if pointer_if_necessary then (s) -> s + ' *' else (s) -> s
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
         arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
@@ -133,19 +140,35 @@ format_type = (type) ->
             if type.name not in boundfns_ive_seen
                 to_put_before.push("struct #{type.name};")
                 boundfns_ive_seen.push(type.name)
-            return type.name + ' *'
+            return ptr type.name
         return "std::function<#{format_type ret_type}
             (#{arg_types.join(', ')})>"
         return type.toString()
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
         if arr_types.length == 1
-            return "Array<#{format_type arr_types}> *"
+            return ptr "Array<#{format_type arr_types}>"
         throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
+
+    if type?.origin == 'ecma6'
+        assert type.name
+        if type.name is 'Map'
+            value_t = type.maybeProps?[':value']
+            key_t = type.maybeProps?[':key']
+            assert key_t and key_t.types.length isnt 0, 'Creating a map of unknown key type'
+            assert key_t and value_t.types.length isnt 0, 'Creating a map of unknown value type'
+            key_types_all_pointers = key_t.types.every (type) -> type instanceof tern.Obj
+            if not key_types_all_pointers
+                assert key_t.types.length is 1, 'Creating a map of mixed key types'
+            assert value_t.types.length is 1, 'Creating a map of mixed value types'
+            formatted_type = if key_types_all_pointers then 'void*' else format_type key_t.getType(false)
+            return ptr "Map<#{formatted_type},
+                #{format_type value_t.getType(false)}>"
+        assert false, 'Unsupported ES6 type ' + type.name
 
     if type instanceof tern.Obj
         { make_fake_class } = require './fake-classes'
-        return make_fake_class(type).name + ' *'
+        return ptr make_fake_class(type).name
 
     type_name = type or 'undefined'
 

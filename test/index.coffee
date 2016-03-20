@@ -143,6 +143,17 @@ describe 'js2cpp', () ->
       console.log('typeof {}', typeof {})
       console.log('typeof process', typeof process)
       console.log('typeof window', typeof window)
+
+      console.log('\\n--- Map\\n')
+
+      var mapObj = new Map()
+      var key1 = {}
+      var key2 = function(){ return mapObj }
+      mapObj.set(key1, 5).set(key2, 4)
+      console.log('mapObj.has(key1)', mapObj.has(key1))
+      console.log('mapObj.has(key2)', mapObj.has(key2))
+      console.log('mapObj.has({})', mapObj.has({}))
+      console.log('mapObj.get(key2)', mapObj.get(key2))
       '''
 
     expected_result =
@@ -207,6 +218,13 @@ describe 'js2cpp', () ->
       typeof {} object
       typeof process object
       typeof window undefined
+
+      --- Map
+
+      mapObj.has(key1) true
+      mapObj.has(key2) true
+      mapObj.has({}) false
+      mapObj.get(key2) 4
       ''' + '\n'
 
     ok.equal(eval(

@@ -4,6 +4,8 @@ assert = require 'assert'
 dumbjs = require 'dumbjs/index'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
+ecma_script_6_tern_defs = require 'tern/defs/ecma6'
+
 { Server } = require 'tern'
 estraverse = require 'estraverse'
 
@@ -95,6 +97,7 @@ global.boundfns_ive_seen = undefined
 module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} } = {}) ->
     server = new Server({})
     server.loadPlugin('js2cpp', {})
+    server.addDefs(ecma_script_6_tern_defs)
     server.reset()
     ctx = server.cx
     tern.withContext ctx, () ->

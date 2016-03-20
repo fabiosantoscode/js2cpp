@@ -23,8 +23,11 @@ std::string typeof(int _) { return "number"; }
 std::string typeof(std::string _) { return "string"; }
 std::string typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
 
+struct Console;
+
 template<typename T>
 struct Array {
+    friend Console;
     private:
     std::vector<T> vec;
     template<typename... Args>
@@ -61,9 +64,6 @@ struct Array {
         }
         return vec[ind];
     }
-    auto begin() { return vec.begin(); }
-    auto end() { return vec.end(); }
-    auto size() { return vec.size(); }
     double push(T value) {
         vec.push_back(value);
         length += 1;
@@ -76,6 +76,24 @@ struct Array {
             }
         }
         return -1;
+    }
+};
+
+template<typename TKey, typename TVal>
+struct Map {
+    friend Console;
+    private:
+    std::map<TKey, TVal> map;
+    public:
+    auto set(TKey key, TVal val) {
+        map[key] = val;
+        return this;
+    }
+    auto get(TKey key) {
+        return map.at(key);
+    }
+    bool has(TKey key) {
+        return map.find(key) != map.end();
     }
 };
 
@@ -101,7 +119,7 @@ std::string String (double);
 template<typename T>
 std::string String(Array<T> *ary) {
     std::string s("");
-    size_t len = ary->size();
+    size_t len = ary->length;
     for (size_t i = 0; i < len; i++) {
         s += String((*ary)[i]);
         if (i < len - 1)
@@ -166,7 +184,7 @@ double Number() { return 0; }
 
 double Number(double n) { return n; }
 
-class Math_ {
+struct Math_ {
     public:
     Math_() {
         struct timespec ts;
@@ -242,7 +260,8 @@ class Math_ {
 
 Math_ Math;
 
-class Console {
+struct Console {
+    private:
     template<typename T>
     static std::string representation(Array<T> *only) {
         return representation(*only);
@@ -250,13 +269,29 @@ class Console {
     template<typename T>
     static std::string representation(Array<T> only) {
         std::string s("[ ");
-        for (auto iter = only.begin();
-                iter != only.end();
+        for (auto iter = only.vec.begin();
+                iter != only.vec.end();
                 iter++) {
+            if (iter != only.vec.begin()) { s += std::string(", "); }
             s += long_representation(*iter);
-            if (iter != only.end() - 1) { s += std::string(", "); }
         }
         s += (" ]");
+        return s;
+    }
+    template<typename TKey, typename TVal>
+    static std::string representation(Map<TKey, TVal> *only) {
+        return representation(*only);
+    }
+    template<typename TKey, typename TVal>
+    static std::string representation(Map<TKey, TVal> only) {
+        std::string s("Map { ");
+        for (auto iter = only.map.begin();
+                iter != only.map.end();
+                iter++) {
+            if (iter != only.map.begin()) { s += std::string(", "); }
+            s += representation(iter->first);
+        }
+        s += (" }");
         return s;
     }
     static std::string representation(double n) {
@@ -388,8 +423,7 @@ void clearImmediate(double opaque_handle) {
 
 
 // Node things
-class Env {
-    public:
+struct Env {
     std::string operator [] (std::string variable) {
         try {
             return std::getenv(variable.c_str());
@@ -403,8 +437,7 @@ class Env {
     }
 };
 
-class Process {
-    public:
+struct Process {
     Env env;
     Array<std::string> * argv;
     void nextTick(auto func) {
