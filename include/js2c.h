@@ -319,6 +319,9 @@ struct Console {
         }
         return std::string("<pointer>");
     }
+    static std::string representation(std::function<void(void)>any) {
+        return std::string("[Function]");
+    }
     static std::string long_representation(auto whatever) {
         return representation(whatever);
     }

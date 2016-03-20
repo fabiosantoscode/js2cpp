@@ -239,6 +239,68 @@ describe 'js2cpp', () ->
 
     ok.equal(output_of(javascript_code), expected_result)
 
+  it 'can use this (lite)', () ->
+    javascript_code = """
+      var identity = function() { return this }
+      console.log(identity.call(function(){ return 6 }))
+    """
+
+    expected_result = """
+      [Function]
+
+    """
+
+    ok.equal(eval(
+      bindifyPrelude +
+      fakeConsole +
+      dumbjs(javascript_code) + '\n' +
+      'main()' + '\n' +
+      'output'
+    ),
+    expected_result,
+    'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+    ok.equal(output_of(javascript_code), expected_result)
+
+  it.skip 'can use this', () ->
+    javascript_code = """
+      var callMe = function() { return this() }
+      var identity = function() { return this }
+      console.log(callMe.call(function(){ return 6 }))
+      console.log([identity][0]())
+      var x = { y: { zed: identity } }
+      console.log(x, x.y.zed())
+      var foo = function (x) {
+        return this + x;
+      }
+      console.log(foo.call(1, 4));
+      function bar() {
+        return this
+      }
+      console.log(bar.call(50))
+    """
+
+    expected_result = """
+      6
+      [ [Function] ]
+      { y: { zed: [Function] } } { zed: [Function] }
+      5
+      50
+
+    """
+
+    ok.equal(eval(
+      bindifyPrelude +
+      fakeConsole +
+      dumbjs(javascript_code) + '\n' +
+      'main()' + '\n' +
+      'output'
+    ),
+    expected_result,
+    'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+    ok.equal(output_of(javascript_code), expected_result)
+
   it 'can transpile code that\'s been through the browserify machinery back in dumbjs', () ->
     javascript_code = """
       console.log(require(#{JSON.stringify(__dirname + '/some.js')})())

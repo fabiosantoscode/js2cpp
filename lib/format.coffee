@@ -95,14 +95,11 @@ formatters =
             sides.push "#{gen format decl.init}"
         RAW_C((sides.join(' = ') + semicolon), { original: node })
     FunctionDeclaration: (node) ->
-        return_type = format_type get_type(node, false).retval.getType(false)
         if node.id.name is 'main'
-            return_type = 'int'
-            assert node.params.length is 0
-            return RAW_C("#{return_type} #{node.id.name}
-                (int argc, char* argv[])
+            return RAW_C("int main (int argc, char* argv[])
                 #{gen format node.body}", { original: node })
 
+        return_type = format_type get_type(node, false).retval.getType(false)
         params = node.params
         if /^_closure/.test(params[0]?.name)
             closure_name = params.shift()
