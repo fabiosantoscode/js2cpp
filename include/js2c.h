@@ -272,7 +272,7 @@ struct Console {
         for (auto iter = only.vec.begin();
                 iter != only.vec.end();
                 iter++) {
-            if (iter != only.vec.begin()) { s += std::string(", "); }
+            if (iter != only.vec.begin()) { s += ", "; }
             s += long_representation(*iter);
         }
         s += (" ]");
@@ -288,10 +288,12 @@ struct Console {
         for (auto iter = only.map.begin();
                 iter != only.map.end();
                 iter++) {
-            if (iter != only.map.begin()) { s += std::string(", "); }
+            if (iter != only.map.begin()) { s += ", "; }
             s += representation(iter->first);
+            s += " => ";
+            s += representation(iter->second);
         }
-        s += (" }");
+        s += " }";
         return s;
     }
     static std::string representation(double n) {
@@ -310,6 +312,12 @@ struct Console {
     }
     static std::string representation(std::string only) {
         return only;
+    }
+    static std::string representation(void* only) {
+        if (only == undefined) {
+            return "undefined";
+        }
+        return std::string("<pointer>");
     }
     static std::string long_representation(auto whatever) {
         return representation(whatever);
