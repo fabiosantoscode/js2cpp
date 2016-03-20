@@ -467,7 +467,6 @@ void js2cpp_init_argv(int argc, char* argv[]) {
     // TODO in the future create js2cpp-node command so it may be the first argument,
     // and the javascript file that generated the program, the second argument.
     process.argv->push(std::string("/usr/bin/env"));
-    int index = 0;
     for (int i = 0; i < argc; i++) {
         process.argv->push(std::string(argv[i]));
     }
