@@ -5,10 +5,13 @@ tern = require 'tern/lib/infer'
 { gen } = require './gen'
 
 _fake_classes = []
-_fake_class_exists = ({ decl_strings }) ->
+_find_fake_lass_with_decls = (decls) ->
     # avoiding duplicate classes
     for cls in _fake_classes
-        if cls.decl_strings.join(';') == decl_strings.join(';')
+        all_equal = decls.length == cls.decls.length and
+            decls.every (decl, i) ->
+                decl[0] is cls.decls[i][0] and decl[1] is cls.decls[i][1]
+        if all_equal
             return cls
 
 get_fake_classes = () -> Object.freeze _fake_classes
@@ -16,7 +19,7 @@ get_fake_classes = () -> Object.freeze _fake_classes
 clear_fake_classes = () ->
     _fake_classes = []
 
-_make_fake_class = (type) ->
+_make_decls = (type) ->
     decls = ([type.props[prop].getType(false), prop] for prop in Object.keys type.props)
 
     decls = decls.sort (a, b) ->
@@ -24,34 +27,26 @@ _make_fake_class = (type) ->
             return 1
         return -1
 
-    decl_strings = decls.map(([type, prop]) -> format_decl(type, prop))
-
-    name = 'FakeClass_' + _fake_classes.length
-
-    properties = decls.map((decl) -> decl[1]).sort()
-
-    types_by_property = {}
-
-    for prop in properties
-        types_by_property[prop] = decls.filter(([type, _prop]) -> _prop == prop)[0][0]
-
-    fake_class = { name: name, decls: decls, decl_strings: decl_strings, properties: properties, types_by_property: types_by_property }
-
-    return fake_class
+    return decls
 
 
 make_fake_class = (type, { assert_exists } = {}) ->
     assert type instanceof tern.Obj
 
-    fake_class = _make_fake_class(type)
-    existing = _fake_class_exists fake_class
+    decls = _make_decls(type)
+    existing = _find_fake_lass_with_decls(decls)
     if existing
         return existing
     else
         if assert_exists
             assert false, 'a fake class did not exist at format time!'
 
-    { name, decl_strings, decls } = fake_class
+    name = 'FakeClass_' + _fake_classes.length
+
+    wip_fake_class = { decls, name }
+    _fake_classes.push(wip_fake_class)  # Avoids infinite recursion in cases where 2 classes reference each other's names.
+
+    decl_strings = decls.map(([type, prop]) -> format_decl(type, prop))
 
     class_body = decl_strings.join(';\n    ')
     if decls.length
@@ -65,17 +60,11 @@ make_fake_class = (type, { assert_exists } = {}) ->
         };\n\n
     """
 
-    properties = decls.map((decl) -> decl[1]).sort()
-
-    types_by_property = {}
-
-    for prop in properties
-        types_by_property[prop] = decls.filter(([type, _prop]) -> _prop == prop)[0][0]
-
-    fake_class = { name: name, decls: decls, decl_strings: decl_strings, properties: properties, types_by_property: types_by_property }
+    fake_class = { name: name, decls: decls }
 
     type.fake_class = fake_class
 
+    _fake_classes.splice(_fake_classes.indexOf(wip_fake_class), 1)
     _fake_classes.push(fake_class)
 
     return fake_class

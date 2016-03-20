@@ -243,10 +243,16 @@ describe 'js2cpp', () ->
     javascript_code = """
       var identity = function() { return this }
       console.log(identity.call(function(){ return 6 }))
+      var object = {
+        foo: 6,
+        method: function (bar) { return this.foo + bar },
+      };
+      console.log(object.method(1))
     """
 
     expected_result = """
       [Function]
+      7
 
     """
 
