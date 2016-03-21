@@ -1,3 +1,4 @@
+yell = require './yell'
 assert = require 'assert'
 { gen } = require './gen'
 tern = require 'tern/lib/infer'
@@ -7,7 +8,7 @@ estraverse = require 'estraverse'
 get_fn_type = (func) ->
     scope = func.scope or func.body.scope
     fnType = scope.fnType.getType(false)
-    assert fnType, 'Couldn\'t find a type for function ' + gen func
+    yell fnType, 'Couldn\'t find a type for function', func.originNode
     return fnType
 
 # Use c++ types
@@ -22,16 +23,15 @@ cpp_types = (ast) ->
             node.kind = get_fn_type(node)
         else
             node.kind = type_of node, decl.id.name
-            assert node.kind, 'couldn\'t find a type for node' + gen node
-        assert node.kind
+            yell node.kind, 'couldn\'t find a type for node', node
 
     retype_fun = (node) ->
         node.kind = get_fn_type(node)
-        assert node.kind, 'Couldn\'t find a type for function ' + gen node
+        yell node.kind, 'Couldn\'t find a type for function', node
         for param in node.params
             scope = node.scope or node.body.scope
             param.kind = scope.hasProp(param.name).getType false
-            assert param.kind, 'couldn\'t find a kind for function param ' + gen param
+            yell param.kind, 'couldn\'t find a kind for function param', param
 
     estraverse.replace ast,
         enter: (node, parent) ->

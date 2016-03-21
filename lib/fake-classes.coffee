@@ -1,7 +1,6 @@
 assert = require 'assert'
 tern = require 'tern/lib/infer'
 
-{ format_decl } = require './format'
 { gen } = require './gen'
 
 _fake_classes = []
@@ -30,23 +29,22 @@ _make_decls = (type) ->
     return decls
 
 
-make_fake_class = (type, { assert_exists } = {}) ->
+make_fake_class = (type, { origin_node } = {}) ->
     assert type instanceof tern.Obj
 
     decls = _make_decls(type)
     existing = _find_fake_lass_with_decls(decls)
     if existing
         return existing
-    else
-        if assert_exists
-            assert false, 'a fake class did not exist at format time!'
 
     name = 'FakeClass_' + _fake_classes.length
 
     wip_fake_class = { decls, name }
     _fake_classes.push(wip_fake_class)  # Avoids infinite recursion in cases where 2 classes reference each other's names.
 
-    decl_strings = decls.map(([type, prop]) -> format_decl(type, prop))
+    # resolve dependency loop
+    { format_decl } = require './format'
+    decl_strings = decls.map(([type, prop]) -> format_decl(type, prop, { origin_node }))
 
     class_body = decl_strings.join(';\n    ')
     if decls.length

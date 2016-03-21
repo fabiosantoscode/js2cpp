@@ -1,5 +1,6 @@
 
 util = require 'util'
+yell = require './yell'
 assert = require 'assert'
 dumbjs = require 'dumbjs/index'
 tern = require 'tern/lib/infer'
@@ -38,7 +39,7 @@ annotate = (ast) ->
                 prop = cur_scope().hasProp(node.name)
                 if prop
                     type = prop.getType(false)
-                    assert type, 'Couldn\'t statically determine the type of ' + node.name
+                    yell type, 'Couldn\'t statically determine the type of ' + node.name, node
                     node.kind = type
 
             if node.type is 'MemberExpression'
@@ -124,7 +125,10 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
             }
         })
         js = customDumbJs(js, dumbJsOptions)
-        ast = tern.parse(js, {})
+        ast = tern.parse(js, {
+            locations: true,
+        })
+        global.currentFile = js
         ast = cleanup ast
         tern.analyze ast
         annotate ast

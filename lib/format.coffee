@@ -1,8 +1,10 @@
+yell = require './yell'
 assert = require 'assert'
 estraverse = require 'estraverse'
 tern = require 'tern/lib/infer'
 standard_library_objects = require('./standard-library-objects.json')
 { gen, RAW_C } = require './gen'
+{ make_fake_class } = require './fake-classes'
 
 # Dependency loop lol
 get_type = (args...) ->
@@ -62,7 +64,7 @@ formatters =
         if type and type.name is 'Map' and type.origin is 'ecma6'
             wrap_membex = if parent.type is 'MemberExpression' then (s) -> "(#{s})" else (s) -> s
             return RAW_C wrap_membex("new #{
-                    format_type(type, false)
+                    format_type(type, { pointer_if_necessary: false, origin_node: node })
                 }()"), { original: node }
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
@@ -76,20 +78,20 @@ formatters =
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
         types = (get_type(item, false) for item in node.elements)
-        array_type = format_type types[0] or tern.ANull
-        assert array_type isnt 'void', 'Creating an array of an unknown type'
-        assert(types.every((type) -> format_type(type) is array_type), 'array of mixed types!')
+        array_type = format_type(types[0] or tern.ANull, { origin_node: node })
+        yell array_type isnt 'void', 'Creating an array of an unknown type', node
+        yell(types.every((type, i) -> format_type(type, { origin_node: node.elements[i] }) is array_type), 'array of mixed types!', node)
         return RAW_C "(new Array<#{ array_type }>({ #{items.join(', ')} }))", { original: node }
     ObjectExpression: (node) ->
-        assert !node.properties.length, 'dumbjs doesn\'t do object expression properties yet, sorry :('
-        { make_fake_class } = require './fake-classes'
+        assert !node.properties.length
         fake_class = make_fake_class(get_type(node, false))
         return RAW_C "new #{fake_class.name}()", { original: node }
     VariableDeclaration: (node) ->
         assert node.declarations.length is 1
         decl = node.declarations[0]
         sides = [
-            "#{format_decl get_type(node, false), decl.id.name}"]
+            format_decl(get_type(node, false), { origin_node: node }, decl.id.name)
+        ]
         semicolon = ';'
         semicolon = '' if node.parent.type is 'ForStatement'
         if decl.init
@@ -100,7 +102,7 @@ formatters =
             return RAW_C("int main (int argc, char* argv[])
                 #{gen format node.body}", { original: node })
 
-        return_type = format_type get_type(node, false).retval.getType(false)
+        return_type = format_type(get_type(node, false).retval.getType(false), { origin_node: node })
         params = node.params
 
         to_put_before.push """
@@ -111,7 +113,9 @@ formatters =
         ", { original: node })
 
 format_params = (params) ->
-    (format_decl get_type(param, false), param.name for param in params).join ', '
+    return params
+        .map (param) -> format_decl(get_type(param, false), param.name, { origin_node: param })
+        .join ', '
 
 all_equivalent_type = (param_list) ->
     if param_list.length is 1
@@ -122,39 +126,38 @@ all_equivalent_type = (param_list) ->
     return type_strings.every((type) -> type is type_strings[0])
 
 # Takes a tern type and formats it as a c++ type
-format_type = (type, pointer_if_necessary = true) ->
+format_type = (type, { pointer_if_necessary = true, origin_node } = {}) ->
     ptr = if pointer_if_necessary then (s) -> s + ' *' else (s) -> s
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
-        arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
-        return "std::function<#{format_type ret_type}
+        arg_types = type.args.map((arg) -> format_type(arg.getType(false), { origin_node }))
+        return "std::function<#{format_type(ret_type, { origin_node })}
             (#{arg_types.join(', ')})>"
         return type.toString()
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
         if all_equivalent_type arr_types.map((t) -> t.getType(false))
-            return ptr "Array<#{format_type(arr_types[0].getType(false))}>"
-        throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
+            return ptr "Array<#{format_type(arr_types[0].getType(false), { origin_node })}>"
+        yell false, 'array contains multiple types of variables. This requires boxed types which are not supported yet.', origin_node
 
     if type?.origin == 'ecma6'
         assert type.name
         if type.name is 'Map'
             value_t = type.maybeProps?[':value']
             key_t = type.maybeProps?[':key']
-            assert key_t and key_t.types.length isnt 0, 'Creating a map of unknown key type'
-            assert key_t and value_t.types.length isnt 0, 'Creating a map of unknown value type'
+            yell key_t and key_t.types.length isnt 0, 'Creating a map of unknown key type', origin_node
+            yell key_t and value_t.types.length isnt 0, 'Creating a map of unknown value type', origin_node
             key_types_all_pointers = key_t.types.every (type) ->
                 type instanceof tern.Obj and type not instanceof tern.Fn
             if not key_types_all_pointers
-                assert key_t.types.length is 1, 'Creating a map of mixed key types'
-            assert all_equivalent_type(value_t.types), 'Creating a map of mixed value types'
-            formatted_type = if key_types_all_pointers then 'void*' else format_type key_t.getType(false)
+                yell key_t.types.length is 1, 'Creating a map of mixed key types', origin_node
+            yell all_equivalent_type(value_t.types), 'Creating a map of mixed value types', origin_node
+            formatted_type = if key_types_all_pointers then 'void*' else format_type(key_t.getType(false), { origin_node })
             return ptr "Map<#{formatted_type},
-                #{format_type value_t.getType(false)}>"
-        assert false, 'Unsupported ES6 type ' + type.name
+                #{format_type(value_t.getType(false), { origin_node })}>"
+        yell false, 'Unsupported ES6 type ' + type.name, origin_node
 
     if type instanceof tern.Obj
-        { make_fake_class } = require './fake-classes'
         return ptr make_fake_class(type).name
 
     type_name = type or 'undefined'
@@ -164,18 +167,18 @@ format_type = (type, pointer_if_necessary = true) ->
         number: 'double'
         undefined: 'void'
         bool: 'bool'
-    }[type_name] or assert false, "unknown type #{type_name}"
+    }[type_name] or yell false, "unknown type #{type_name}", node
 
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
-format_decl = (type, name) ->
+format_decl = (type, name, { origin_node } = {}) ->
     assert type, 'format_decl called without a type!'
     assert name, 'format_decl called without a name!'
-    return [format_type(type), name].join(' ')
+    return [format_type(type, { origin_node }), name].join(' ')
 
 # indent all but the first line by 4 spaces
 indent_tail = (s) ->
     indent_arr = ([first, rest...]) -> [first].concat('    ' + line for line in rest)
     indent_arr(s.split('\n')).join('\n')
 
-module.exports = { format_decl, formatters, format_type, format, format_params }
+module.exports = { format_decl, formatters, format }
