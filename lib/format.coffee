@@ -35,12 +35,6 @@ formatters =
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if obj in standard_library_objects
             return RAW_C obj + '.' + prop, { original: node }
-        if node.parent.type is 'CallExpression' and
-                node.parent.callee is node and
-                get_type(node, false)
-            if get_type(node, false) in functions_that_need_bind or get_type(node, false).original in functions_that_need_bind
-                # Calling one of our functors
-                return RAW_C "(*#{obj}->#{prop})", { original: node }
         if node.computed
             needs_deref = get_type(node.object) instanceof tern.Arr
             if needs_deref
@@ -48,21 +42,28 @@ formatters =
             return RAW_C "#{obj}[#{prop}]", { original: node }
         return RAW_C obj + '->' + prop, { original: node }
     CallExpression: (node) ->
-        if node.callee.type is 'NewExpression' and
-                /^_flatten/.test(gen(node.callee.callee))
-            return RAW_C "(*#{gen node.callee})(#{node.arguments.map(gen).join(', ')})", { original: node }
-    NewExpression: (node) ->
+        if node.callee.name is 'BIND'
+            function_type = get_type(node.arguments[0], false).getFunctionType()
+            args = function_type.argNames.slice(node.arguments.length - 1)
+            placeholders = args
+                .map((_, i) -> "std::placeholders::_#{i+1}")
+                .join(', ')
+
+            if placeholders.length
+                placeholders = ', ' + placeholders
+
+            return RAW_C "std::bind(#{
+                node.arguments.map((arg) -> gen format arg).join(', ')
+            }#{
+                placeholders
+            })", { original: node }
+    NewExpression: (node, parent) ->
         type = get_type(node, false)
         if type and type.name is 'Map' and type.origin is 'ecma6'
-            return RAW_C "new #{
+            wrap_membex = if parent.type is 'MemberExpression' then (s) -> "(#{s})" else (s) -> s
+            return RAW_C wrap_membex("new #{
                     format_type(type, false)
-                }()", { original: node }
-    Identifier: (node) ->
-        if node.parent.type is 'CallExpression' and get_type(node, false)
-            callee = node.parent.callee
-            if callee.type is 'Identifier' and get_type(callee, false) in functions_that_need_bind or get_type(callee, false)?.original in functions_that_need_bind
-                # Calling one of our functors again
-                return RAW_C "(*#{node.parent.callee.name})", { original: node }
+                }()"), { original: node }
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
             return RAW_C "std::string(#{gen node})", { original: node }
@@ -101,31 +102,24 @@ formatters =
 
         return_type = format_type get_type(node, false).retval.getType(false)
         params = node.params
-        if /^_closure/.test(params[0]?.name)
-            closure_name = params.shift()
-            closure_decl = format_decl(get_type(closure_name, false), closure_name.name)
-            # TODO check if functions actually need forward declarations first. Maybe.
-            to_put_before.push """
-                struct #{node.id.name} : public Functor {
-                    #{closure_decl};
-                    #{node.id.name}(#{closure_decl}):_closure(_closure) { }
-                    #{return_type} operator() (#{format_params params});
-                };
-            """
-            return RAW_C("
-                #{return_type} #{node.id.name}::operator() (#{format_params params}) #{gen format node.body}
-            ", { original: node })
-        else
-            # TODO check if functions actually need forward declarations first. Maybe.
-            to_put_before.push """
-                 #{return_type} #{node.id.name} (#{format_params params});
-            """
-            return RAW_C("
-                #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
-            ", { original: node })
+
+        to_put_before.push """
+             #{return_type} #{node.id.name} (#{format_params params});
+        """
+        return RAW_C("
+            #{return_type} #{node.id.name} (#{format_params params}) #{gen format node.body}
+        ", { original: node })
 
 format_params = (params) ->
     (format_decl get_type(param, false), param.name for param in params).join ', '
+
+all_equivalent_type = (param_list) ->
+    if param_list.length is 1
+        return true
+
+    type_strings = param_list.map (t) -> format_type(t)
+
+    return type_strings.every((type) -> type is type_strings[0])
 
 # Takes a tern type and formats it as a c++ type
 format_type = (type, pointer_if_necessary = true) ->
@@ -133,21 +127,13 @@ format_type = (type, pointer_if_necessary = true) ->
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
         arg_types = type.args.map((arg) -> format_type(arg.getType(false)))
-        if type.isBoundFn
-            if type.name not in boundfns_ive_seen
-                to_put_before.push("struct #{type.name};")
-                boundfns_ive_seen.push(type.name)
-            return ptr type.name
         return "std::function<#{format_type ret_type}
             (#{arg_types.join(', ')})>"
         return type.toString()
     if type instanceof tern.Arr
         arr_types = type.props['<i>'].types
-        type_strings = arr_types.map (t) -> format_type(t.getType(false))
-
-        if arr_types.length == 1 or
-                type_strings.every((type) -> type is type_strings[0])
-            return ptr "Array<#{type_strings[0]}>"
+        if all_equivalent_type arr_types.map((t) -> t.getType(false))
+            return ptr "Array<#{format_type(arr_types[0].getType(false))}>"
         throw new Error 'Some array contains multiple types of variables. This requires boxed types which are not supported yet.'
 
     if type?.origin == 'ecma6'
@@ -157,10 +143,11 @@ format_type = (type, pointer_if_necessary = true) ->
             key_t = type.maybeProps?[':key']
             assert key_t and key_t.types.length isnt 0, 'Creating a map of unknown key type'
             assert key_t and value_t.types.length isnt 0, 'Creating a map of unknown value type'
-            key_types_all_pointers = key_t.types.every (type) -> type instanceof tern.Obj
+            key_types_all_pointers = key_t.types.every (type) ->
+                type instanceof tern.Obj and type not instanceof tern.Fn
             if not key_types_all_pointers
                 assert key_t.types.length is 1, 'Creating a map of mixed key types'
-            assert value_t.types.length is 1, 'Creating a map of mixed value types'
+            assert all_equivalent_type(value_t.types), 'Creating a map of mixed value types'
             formatted_type = if key_types_all_pointers then 'void*' else format_type key_t.getType(false)
             return ptr "Map<#{formatted_type},
                 #{format_type value_t.getType(false)}>"

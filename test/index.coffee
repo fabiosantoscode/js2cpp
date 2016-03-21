@@ -150,7 +150,7 @@ describe 'js2cpp', () ->
 
       var mapObj = new Map()
       var key1 = {}
-      var key2 = function(){ return mapObj }
+      var key2 = {}
       mapObj.set(key1, 5).set(key2, 4)
       console.log('mapObj.has(key1)', mapObj.has(key1))
       console.log('mapObj.has(key2)', mapObj.has(key2))

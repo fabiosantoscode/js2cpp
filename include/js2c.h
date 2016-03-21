@@ -18,13 +18,10 @@
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
 
-struct Functor {};
-
 std::string typeof(double _) { return "number"; }
 std::string typeof(int _) { return "number"; }
 std::string typeof(std::string _) { return "string"; }
 std::string typeof(std::function<void(void)>) { return "function"; }
-std::string typeof(Functor * _) { return "function"; }
 std::string typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
 
 struct Console;
@@ -321,7 +318,7 @@ struct Console {
         if (only == undefined) {
             return "undefined";
         }
-        return std::string("<pointer>");
+        return std::string("[Object]");
     }
     static std::string representation(std::function<void(void)>any) {
         return std::string("[Function]");
@@ -413,24 +410,24 @@ void js2cpp_init_libuv() { Js2cppLibuv::init(); };
 void js2cpp_run_libuv() { Js2cppLibuv::run(); };
 
 
-double setTimeout(auto * func, int timeout_time = 0) {
-    return Js2cppLibuv::add(*func, timeout_time);
+double setTimeout(auto func, int timeout_time = 0) {
+    return Js2cppLibuv::add(func, timeout_time);
 }
 void clearTimeout(double opaque_handle) {
     Js2cppLibuv::remove(opaque_handle);
 }
 
 
-double setInterval(auto * func, int timeout_time = 0) {
-    return Js2cppLibuv::add(*func, timeout_time, /*is_interval=*/true);
+double setInterval(auto func, int timeout_time = 0) {
+    return Js2cppLibuv::add(func, timeout_time, /*is_interval=*/true);
 }
 void clearInterval(double opaque_handle) {
     Js2cppLibuv::remove(opaque_handle);
 }
 
 
-double setImmediate(auto * func) {
-    return Js2cppLibuv::add(*func, 0);
+double setImmediate(auto func) {
+    return Js2cppLibuv::add(func, 0);
 }
 void clearImmediate(double opaque_handle) {
     Js2cppLibuv::remove(opaque_handle);

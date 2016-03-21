@@ -2,7 +2,6 @@
 util = require 'util'
 assert = require 'assert'
 dumbjs = require 'dumbjs/index'
-bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 tern = require 'tern/lib/infer'
 ecma_script_6_tern_defs = require 'tern/defs/ecma6'
 
@@ -72,28 +71,7 @@ cleanup = (ast) ->
 
 register_tern_plugins()
 
-# deal with dumbjs's bindify
-bindify = (ast) ->
-    current_function = null
-    estraverse.replace ast, enter: (node, parent) ->
-        if node.type is 'CallExpression' and node.callee.name is 'BIND'
-            assert node.arguments.length is 2
-            assert cpp_types.get_type(node.arguments[0], false), "couldn\'t stactically determine the type of #{gen format node.arguments[0]}"
-            funcType = cpp_types.get_type(node.arguments[0], false)
-            if funcType.original
-                funcType = funcType.original
-            functions_that_need_bind.push(funcType)
-            return {
-                type: 'NewExpression',
-                callee: node.arguments[0],
-                arguments: node.arguments.slice(1),
-                scope_at: node.scope_at,
-                func_at: node.func_at,
-            }
-
 global.to_put_before = undefined
-global.functions_that_need_bind = undefined
-global.boundfns_ive_seen = undefined
 module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} } = {}) ->
     server = new Server({})
     server.loadPlugin('js2cpp', {})
@@ -102,8 +80,6 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
     ctx = server.cx
     tern.withContext ctx, () ->
         global.to_put_before = []
-        global.functions_that_need_bind = []
-        global.boundfns_ive_seen = []
         clear_fake_classes()
         if dumbJsOptions.mainify is undefined
             dumbJsOptions.mainify = {}
@@ -152,7 +128,6 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
         ast = cleanup ast
         tern.analyze ast
         annotate ast
-        ast = bindify ast
         ast = cpp_types ast
         run_transforms(ast)
         pseudo_c_ast = format ast
