@@ -72,6 +72,17 @@ struct Array {
         length += 1;
         return length;
     }
+    T pop() {
+        length -= 1;
+        T last_value = vec[length];
+        vec.pop_back();
+        return last_value;
+    }
+    double unshift(T value) {
+        length += 1;
+        vec.insert(vec.begin(), value);
+        return length;
+    }
     double indexOf(T needle) {
         for (int i = 0; i < vec.size(); i++) {
             if (vec[i] == needle) {
