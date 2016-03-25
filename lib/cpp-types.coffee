@@ -23,7 +23,7 @@ cpp_types = (ast) ->
             node.kind = get_fn_type(node)
         else
             node.kind = type_of node, decl.id.name
-            yell node.kind, 'couldn\'t find a type for node', node
+        yell node.kind, 'couldn\'t find a type for node', node
 
     retype_fun = (node) ->
         node.kind = get_fn_type(node)
