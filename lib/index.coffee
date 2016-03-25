@@ -2,7 +2,7 @@
 util = require 'util'
 yell = require './yell'
 assert = require 'assert'
-dumbjs = require 'dumbjs/index'
+dumbjs = require 'dumbjs/lib/index'
 tern = require 'tern/lib/infer'
 ecma_script_6_tern_defs = require 'tern/defs/ecma6'
 
