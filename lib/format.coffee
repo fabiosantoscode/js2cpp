@@ -90,7 +90,7 @@ formatters =
         assert node.declarations.length is 1
         decl = node.declarations[0]
         sides = [
-            format_decl(get_type(node, false), { origin_node: node }, decl.id.name)
+            format_decl(get_type(node, false), decl.id.name, { origin_node: node })
         ]
         semicolon = ';'
         semicolon = '' if node.parent.type is 'ForStatement'
