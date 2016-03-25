@@ -114,7 +114,7 @@ formatters =
 
 format_params = (params) ->
     return params
-        .map (param) -> format_decl(get_type(param, false), param.name, { origin_node: param })
+        .map (param) -> format_decl(get_type(param, false), param.name, { is_param: true, origin_node: param })
         .join ', '
 
 all_equivalent_type = (param_list) ->
@@ -126,11 +126,11 @@ all_equivalent_type = (param_list) ->
     return type_strings.every((type) -> type is type_strings[0])
 
 # Takes a tern type and formats it as a c++ type
-format_type = (type, { pointer_if_necessary = true, origin_node } = {}) ->
+format_type = (type, { pointer_if_necessary = true, is_param = false, origin_node } = {}) ->
     ptr = if pointer_if_necessary then (s) -> s + ' *' else (s) -> s
     if type instanceof tern.Fn
         ret_type = type.retval.getType(false)
-        arg_types = type.args.map((arg) -> format_type(arg.getType(false), { origin_node }))
+        arg_types = type.args.map((arg) -> format_type(arg.getType(false), { is_param: true, origin_node }))
         return "std::function<#{format_type(ret_type, { origin_node })}
             (#{arg_types.join(', ')})>"
         return type.toString()
@@ -160,6 +160,9 @@ format_type = (type, { pointer_if_necessary = true, origin_node } = {}) ->
     if type instanceof tern.Obj
         return ptr make_fake_class(type).name
 
+    if type in [tern.ANull, null, undefined] and is_param
+        return 'auto'
+
     type_name = type or 'undefined'
 
     return {
@@ -167,14 +170,14 @@ format_type = (type, { pointer_if_necessary = true, origin_node } = {}) ->
         number: 'double'
         undefined: 'void'
         bool: 'bool'
-    }[type_name] or yell false, "unknown type #{type_name}", node
+    }[type_name] or yell false, "unknown type #{type_name}", origin_node
 
 # Format a decl.
 # Examples: "int main", "(void)(func*)()", etc.
-format_decl = (type, name, { origin_node } = {}) ->
+format_decl = (type, name, { is_param = false, origin_node } = {}) ->
     assert type, 'format_decl called without a type!'
     assert name, 'format_decl called without a name!'
-    return [format_type(type, { origin_node }), name].join(' ')
+    return [format_type(type, { is_param, origin_node }), name].join(' ')
 
 # indent all but the first line by 4 spaces
 indent_tail = (s) ->

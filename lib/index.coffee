@@ -33,11 +33,9 @@ annotate = (ast) ->
                 fun_stack.push node
                 scope_stack.push(node.scope or node.body.scope or cur_scope())
 
-            if node.type is 'Identifier' and
-                    parent isnt cur_fun() and
-                    not (parent.type is 'MemberExpression' and parent.property is node)
+            if node.type is 'Identifier' and is_variable_reference(node, parent)
                 prop = cur_scope().hasProp(node.name)
-                if prop
+                if prop and !/Function/.test(prop?.originNode?.parent?.type)
                     type = prop.getType(false)
                     yell type, 'Couldn\'t statically determine the type of ' + node.name, node
                     node.kind = type
@@ -145,4 +143,18 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
         c = gen(pseudo_c_ast)
         return before_c + c
 
+# stolen from dumbjs/lib/declosurify
+is_variable_reference = (node, parent) ->
+  assert node.type is 'Identifier'
+  if /Function/.test parent.type
+    # I'm the argument or name of a function
+    return false
+  if parent.type is 'MemberExpression'
+    # Not all identifiers in MemberExpression s are variables, only when:
+    return (
+      parent.object is node or  # - identifier is the leftmost in the membex
+      (parent.computed and parent.property is node)  # - identifier is in square brackets ( foo[x] )
+    )
+  # Everything else is a variable reference. Probably.
+  return true
 

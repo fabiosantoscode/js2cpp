@@ -258,6 +258,62 @@ describe 'js2cpp', () ->
 
     ok.equal(output_of(javascript_code), expected_result)
 
+  describe 'functions that take `auto`', () ->
+    it 'Can be generated', () ->
+      javascript_code = """
+        function x(a) {
+          return typeof a
+        }
+        console.log(x(1));
+        console.log(x("lel"));
+      """
+
+      expected_result = """
+        number
+        string
+
+      """
+
+      ok.equal(eval(
+        bindifyPrelude +
+        fakeConsole +
+        dumbjs(javascript_code) + '\n' +
+        'main()' + '\n' +
+        'output'
+      ),
+      expected_result,
+      'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+      ok.equal(output_of(javascript_code), expected_result)
+
+    it.skip 'TODO: Can use closures', () ->
+      javascript_code = """
+        var prefix = '-'
+        function x(a) {
+          return prefix + typeof a
+        }
+        console.log(x(1));
+        console.log(x("lel"));
+      """
+
+      expected_result = """
+        -number
+        -string
+
+      """
+
+      ok.equal(eval(
+        bindifyPrelude +
+        fakeConsole +
+        dumbjs(javascript_code) + '\n' +
+        'main()' + '\n' +
+        'output'
+      ),
+      expected_result,
+      'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+      ok.equal(output_of(javascript_code), expected_result)
+
   it 'can use this (lite)', () ->
     javascript_code = """
       var identity = function() { return this }
@@ -287,7 +343,7 @@ describe 'js2cpp', () ->
 
     ok.equal(output_of(javascript_code), expected_result)
 
-  it.skip 'can use this', () ->
+  it.skip 'TODO: can use this', () ->
     javascript_code = """
       var callMe = function() { return this() }
       var identity = function() { return this }

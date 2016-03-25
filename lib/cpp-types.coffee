@@ -30,7 +30,7 @@ cpp_types = (ast) ->
         yell node.kind, 'Couldn\'t find a type for function', node
         for param in node.params
             scope = node.scope or node.body.scope
-            param.kind = scope.hasProp(param.name).getType false
+            param.kind = scope.hasProp(param.name).getType(false) or tern.ANull
             yell param.kind, 'couldn\'t find a kind for function param', param
 
     estraverse.replace ast,
