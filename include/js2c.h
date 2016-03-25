@@ -47,6 +47,7 @@ struct Array {
     }
     Array(std::initializer_list<T> init) {
         vec = std::vector<T>();
+        length = 0;
         for (auto iter = init.begin();
                 iter != init.end();
                 iter++) {
@@ -55,6 +56,7 @@ struct Array {
     }
     template<typename... Args>
     Array(Args... args) {
+        length = 0;
         vec = std::vector<T>();
         from_arg_pack(args...);
     }
