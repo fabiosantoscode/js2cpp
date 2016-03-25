@@ -286,7 +286,7 @@ describe 'js2cpp', () ->
 
       ok.equal(output_of(javascript_code), expected_result)
 
-    it.skip 'TODO: Can use closures', () ->
+    it 'Can use closures and be called immediately', () ->
       javascript_code = """
         var prefix = '-'
         function x(a) {
@@ -294,6 +294,35 @@ describe 'js2cpp', () ->
         }
         console.log(x(1));
         console.log(x("lel"));
+      """
+
+      expected_result = """
+        -number
+        -string
+
+      """
+
+      ok.equal(eval(
+        bindifyPrelude +
+        fakeConsole +
+        dumbjs(javascript_code) + '\n' +
+        'main()' + '\n' +
+        'output'
+      ),
+      expected_result,
+      'sanity check: javascript runs in regular eval using util.inspect to log stuff and still has expected result.')
+
+      ok.equal(output_of(javascript_code), expected_result)
+
+    it.skip 'TODO: Can use closures and be stored', () ->
+      javascript_code = """
+        var prefix = '-'
+        function x(a) {
+          return prefix + typeof a
+        }
+        var y = x;
+        console.log(y(1));
+        console.log(y("lel"));
       """
 
       expected_result = """
