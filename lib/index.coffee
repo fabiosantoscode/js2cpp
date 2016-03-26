@@ -7,6 +7,7 @@ tern = require 'tern/lib/infer'
 ecma_script_6_tern_defs = require 'tern/defs/ecma6'
 
 { Server } = require 'tern'
+underscore = require 'underscore'
 estraverse = require 'estraverse'
 
 { format } = require('./format')
@@ -72,6 +73,28 @@ register_tern_plugins()
 
 global.to_put_before = undefined
 module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} } = {}) ->
+    dumbJsOptions = underscore.defaults(dumbJsOptions, {
+        mainify: {},
+    })
+
+    dumbJsOptions.mainify = underscore.defaults(dumbJsOptions.mainify, {
+        prepend: [],
+        append: [],
+    })
+
+    make_global_call = (name, args = []) -> {
+        type: 'ExpressionStatement',
+        expression: {
+            type: 'CallExpression',
+            callee: { type: 'Identifier', name: name },
+            arguments: args.map((arg) -> { type: 'Identifier', name: arg }),
+        }
+    }
+    dumbJsOptions.mainify.prepend.push(make_global_call('js2cpp_init_libuv'))
+    dumbJsOptions.mainify.prepend.push(make_global_call('js2cpp_init_argv', [ 'argc', 'argv' ]))
+    dumbJsOptions.mainify.append.push(make_global_call('js2cpp_run_libuv'))
+    js = customDumbJs(js, dumbJsOptions)
+
     server = new Server({})
     server.loadPlugin('js2cpp', {})
     server.addDefs(ecma_script_6_tern_defs)
@@ -80,49 +103,6 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
     tern.withContext ctx, () ->
         global.to_put_before = []
         clear_fake_classes()
-        if dumbJsOptions.mainify is undefined
-            dumbJsOptions.mainify = {}
-        if dumbJsOptions.mainify.prepend is undefined
-            dumbJsOptions.mainify.prepend = []
-        if dumbJsOptions.mainify.append is undefined
-            dumbJsOptions.mainify.append = []
-        dumbJsOptions.mainify.prepend.push({
-            type: 'ExpressionStatement',
-            expression: {
-                type: 'CallExpression',
-                callee: {
-                    type: 'Identifier',
-                    name: 'js2cpp_init_libuv'
-                },
-                arguments: [],
-            }
-        })
-        dumbJsOptions.mainify.prepend.push({
-            type: 'ExpressionStatement',
-            expression: {
-                type: 'CallExpression',
-                callee: {
-                    type: 'Identifier',
-                    name: 'js2cpp_init_argv'
-                },
-                arguments: [
-                    { type: 'Identifier', name: 'argc' },
-                    { type: 'Identifier', name: 'argv' }
-                ],
-            }
-        })
-        dumbJsOptions.mainify.append.push({
-            type: 'ExpressionStatement',
-            expression: {
-                type: 'CallExpression',
-                callee: {
-                    type: 'Identifier',
-                    name: 'js2cpp_run_libuv'
-                },
-                arguments: [],
-            }
-        })
-        js = customDumbJs(js, dumbJsOptions)
         ast = tern.parse(js, {
             locations: true,
         })
