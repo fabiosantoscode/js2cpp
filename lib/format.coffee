@@ -78,7 +78,9 @@ formatters =
     ArrayExpression: (node, parent) ->
         items = ("#{gen format item}" for item in node.elements)
         types = (get_type(item, false) for item in node.elements)
-        array_type = format_type(types[0] or tern.ANull, { origin_node: node })
+        array_type = format_type(types[0], { origin_node: node })
+        if array_type is 'void' and parent.type is 'VariableDeclarator'
+            array_type = format_type(get_type(parent.id, false), { origin_node: node })
         yell array_type isnt 'void', 'Creating an array of an unknown type', node
         yell(types.every((type, i) -> format_type(type, { origin_node: node.elements[i] }) is array_type), 'array of mixed types!', node)
         return RAW_C "(new Array<#{ array_type }>({ #{items.join(', ')} }))", { original: node }

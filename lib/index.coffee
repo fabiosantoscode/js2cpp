@@ -1,15 +1,19 @@
 
 util = require 'util'
-yell = require './yell'
 assert = require 'assert'
 dumbjs = require 'dumbjs/lib/index'
-tern = require 'tern/lib/infer'
-ecma_script_6_tern_defs = require 'tern/defs/ecma6'
 
-{ Server } = require 'tern'
 underscore = require 'underscore'
 estraverse = require 'estraverse'
 
+{ Server } = require 'tern'
+tern = require 'tern/lib/infer'
+# tern_defs_ecma5 = require 'tern/defs/ecma5'
+tern_defs_ecma6 = require 'tern/defs/ecma6'
+tern_add_comments = require 'tern/lib/comment'
+require 'tern/plugin/doc_comment'  # adds the doc_comment plugin to tern modules
+
+yell = require './yell'
 { format } = require('./format')
 { gen } = require('./gen')
 run_transforms = require('./transforms/index')
@@ -95,17 +99,23 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
     dumbJsOptions.mainify.append.push(make_global_call('js2cpp_run_libuv'))
     js = customDumbJs(js, dumbJsOptions)
 
-    server = new Server({})
-    server.loadPlugin('js2cpp', {})
-    server.addDefs(ecma_script_6_tern_defs)
+    server = new Server({
+        defs: [ tern_defs_ecma6 ],
+        plugins: {
+            doc_comment: { strong: true },
+            js2cpp: {},
+        },
+    })
+    # server.addDefs(tern_defs_ecma5)  TODO adding this makes everything fail. Bug?
+    server.addFile('<js2cpp input>', js)
     server.reset()
     ctx = server.cx
     tern.withContext ctx, () ->
         global.to_put_before = []
         clear_fake_classes()
-        ast = tern.parse(js, {
-            locations: true,
-        })
+        file = server.findFile('<js2cpp input>')
+        file.inspect = () -> '<javascript text given to tern>'  # This shows up when I log every node, so no pls.
+        ast = file.ast
         global.currentFile = js
         ast = cleanup ast
         tern.analyze ast

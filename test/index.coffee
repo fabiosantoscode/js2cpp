@@ -343,6 +343,13 @@ describe 'js2cpp', () ->
 
       ok.equal(output_of(javascript_code), expected_result)
 
+  describe 'jsdoc integration', () ->
+    it 'allows you to create variables of unknown types', () ->
+      ok /std::string x/.test cli.sync('/** @type {string} **/ var x;')
+
+    it 'allows you to create arrays of unknown types', () ->
+      ok /Array<double>/.test cli.sync('/** @type {number[]} **/ var x = [];')
+
   it 'can use this (lite)', () ->
     javascript_code = """
       var identity = function() { return this }
