@@ -51,6 +51,9 @@ cli.run = (inpt, run_args) ->
                     reject({ status_code })
     .then () ->
         return new Promise (resolve) ->
+            if process.env['RUN_VALGRIND']
+                run_args = [binary_path].concat(run_args)
+                binary_path = 'valgrind'
             program = child_process.spawn(binary_path, run_args or [])
             promiseForEndedStreams = new Promise (resolve) ->
                 stdoutEnded = false
