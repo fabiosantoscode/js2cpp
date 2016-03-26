@@ -8,7 +8,16 @@ var path = require('path')
 var input = process.stdin;
 var output = process.stdout;
 
-if (process.argv[2] == '--run') {
+if (process.argv[2] == '-h' || process.argv[2] == '--help') {
+  console.log('Usage: js2cpp --run (run javascript from stdin)')
+  console.log('Usage: js2cpp --run filename.js')
+  console.log('Usage: js2cpp (compile from stdin)')
+  console.log('Usage: js2cpp filename.js (compile)')
+  console.log('')
+  console.log('environment variables:')
+  console.log(' ~ $ RUN_VALGRIND=1 js2cpp --run ...    - Run the compiled program with `valgrind`')
+  console.log(' ~ $ GPP_BINARY=/path/to/g++ js2cpp ... - Select what g++ binary to use (defaults to `g++`)')
+} else if (process.argv[2] == '--run') {
   var args = process.argv.slice(3)
   if (process.argv[3] && process.argv[3] !== '--') {
     input = fs.createReadStream(process.argv[3])
