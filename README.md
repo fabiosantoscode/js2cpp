@@ -14,7 +14,7 @@ Yeah, it actually does some things. This is how js2cpp handles strings:
     #include "js2c.h"
     #include <string>
 
-    std::string("lol") + std::string("lel");
+    String("lol") + String("lel");
 
 And here's console.log!
 
@@ -33,7 +33,7 @@ Here is tern.js figuring out a couple of types.
     #include <string>
     
     double aNumber = 1;
-    std::string aString = std::string("1");
+    String aString = String("1");
 
 # How do I run this? (Usage)
 

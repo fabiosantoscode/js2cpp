@@ -11,7 +11,7 @@ module.exports = (ast) ->
                     gen(node.left.object) == 'process.env'
                 as_string = gen format node.left.property
                 if node.left.property.type is 'Identifier'
-                    as_string = "std::string(#{JSON.stringify(node.left.property.name)})"
+                    as_string = "String(#{JSON.stringify(node.left.property.name)})"
                 return RAW_C("process.env.setenv(#{as_string}, String(#{gen format node.right}))", { original: node })
 
             # Turns process.env.FOO into process.env['FOO']
@@ -19,6 +19,6 @@ module.exports = (ast) ->
                     node.object.type is 'MemberExpression' and
                     gen(node.object) == 'process.env' and
                     node.property.type is 'Identifier'
-                return RAW_C("process.env[std::string(#{JSON.stringify node.property.name})]", { original: node })
+                return RAW_C("process.env[String(#{JSON.stringify node.property.name})]", { original: node })
     return ast
 

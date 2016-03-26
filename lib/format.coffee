@@ -29,7 +29,7 @@ formatters =
                     not node.scope_at.hasProp(arg.name)
                 # typical Javascript feature detection
                 type_name = if arg.name not in standard_library_objects then 'undefined' else 'object'
-                return RAW_C "std::string(\"#{type_name}\")
+                return RAW_C "String(\"#{type_name}\")
                     /* was: typeof #{arg.name}*/", { original: node }
 
             return RAW_C "typeof(#{gen format arg})", { original: node }
@@ -68,7 +68,7 @@ formatters =
                 }()"), { original: node }
     Literal: (node) ->
         if node.raw[0] in ['"', "'"]
-            return RAW_C "std::string(#{gen node})", { original: node }
+            return RAW_C "String(#{gen node})", { original: node }
         if typeof node.value is 'number'
             if node.value == Math.floor(node.value)
                 # All numbers are doubles. But since c++ can't tell between an int and a bool
@@ -168,7 +168,7 @@ format_type = (type, { pointer_if_necessary = true, is_param = false, origin_nod
     type_name = type or 'undefined'
 
     return {
-        string: 'std::string'
+        string: 'String'
         number: 'double'
         undefined: 'void'
         bool: 'bool'

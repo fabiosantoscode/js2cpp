@@ -166,6 +166,13 @@ describe 'js2cpp', () ->
       for (var i = 0; i < functions.length; i++) {
         functions[i](i + 1)
       }
+
+      console.log('\\n--- immutable strings\\n')
+
+      var ex = 'lel';
+      var why = ex;
+      why += '1';
+      console.log('x, y', ex, why)
       '''
 
     expected_result =
@@ -244,6 +251,10 @@ describe 'js2cpp', () ->
 
       function one got 1
       function two got 2
+
+      --- immutable strings
+
+      x, y lel lel1
       ''' + '\n'
 
     ok.equal(eval(
@@ -345,7 +356,7 @@ describe 'js2cpp', () ->
 
   describe 'jsdoc integration', () ->
     it 'allows you to create variables of unknown types', () ->
-      ok /std::string x/.test cli.sync('/** @type {string} **/ var x;')
+      ok /String x/.test cli.sync('/** @type {string} **/ var x;')
 
     it 'allows you to create arrays of unknown types', () ->
       ok /Array<double>/.test cli.sync('/** @type {number[]} **/ var x = [];')

@@ -18,13 +18,102 @@
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
 
-std::string typeof(double _) { return "number"; }
-std::string typeof(int _) { return "number"; }
-std::string typeof(std::string _) { return "string"; }
-std::string typeof(std::function<void(void)>) { return "function"; }
-std::string typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
-
+template<typename T>
+struct Array;
 struct Console;
+
+namespace dumbjs_number_convert {
+    double parse(std::string n, int base) {
+        return (double) strtol(n.c_str(), NULL, base);
+    }
+    std::string stringify(double n, int base) {
+        if (isnan(n)) {
+            return std::string("NaN");
+        }
+        if (n == (int) n) {
+            return std::to_string((int) n);
+        }
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(15) << n;
+        return stream.str();
+    }
+};
+
+
+struct String {
+    friend Console;
+    private:
+    std::string string_data;
+    inline void set_string_data(std::string s) {
+        string_data = s;
+        length = s.length();
+    }
+    public:
+    double length;
+
+    String (double convert_from) {
+        set_string_data(dumbjs_number_convert::stringify(convert_from, 10));
+    }
+
+    String (std::nullptr_t x) {
+        // Temporary fix for how commonJS modules are transpiled
+        set_string_data(String("undefined"));
+    }
+
+    String (const char *convert_from) {
+        set_string_data(convert_from);
+    }
+
+    String (const std::string & convert_from) {
+        set_string_data(convert_from);
+    }
+
+    String() {
+        set_string_data(String(""));
+    }
+
+    operator std::string() {
+        return string_data;
+    }
+
+    String operator[] (int index) const {
+        std::string ret = "";
+        ret += string_data[index];
+        return ret;
+    }
+
+    String operator+ (const std::string &other) const {
+        return this->string_data + other;
+    }
+
+    String operator+= (const std::string &other) {
+        set_string_data(string_data + other);
+        return string_data;
+    }
+
+    bool operator == (const std::string &other) const {
+        return string_data == other;
+    }
+
+    template<typename T>
+    String(Array<T> *ary) {
+        std::string s("");
+        size_t len = ary->length;
+        for (size_t i = 0; i < len; i++) {
+            s += String((*ary)[i]);
+            if (i < len - 1)
+                s += std::string(",");
+        }
+        set_string_data(s);
+    }
+};
+
+
+String typeof(double _) { return "number"; }
+String typeof(int _) { return "number"; }
+String typeof(String _) { return "string"; }
+String typeof(std::function<void(void)>) { return "function"; }
+String typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
 
 template<typename T>
 struct Array {
@@ -110,53 +199,6 @@ struct Map {
         return map.find(key) != map.end();
     }
 };
-
-namespace dumbjs_number_convert {
-    double parse(std::string n, int base) {
-        return (double) strtol(n.c_str(), NULL, base);
-    }
-    std::string stringify(double n, int base) {
-        if (isnan(n)) {
-            return std::string("NaN");
-        }
-        if (n == (int) n) {
-            return std::to_string((int) n);
-        }
-        std::ostringstream stream;
-        stream << std::fixed << std::setprecision(15) << n;
-        return stream.str();
-    }
-};
-
-std::string String (double);
-
-template<typename T>
-std::string String(Array<T> *ary) {
-    std::string s("");
-    size_t len = ary->length;
-    for (size_t i = 0; i < len; i++) {
-        s += String((*ary)[i]);
-        if (i < len - 1)
-            s += std::string(",");
-    }
-    return s;
-}
-
-std::string String (double convert_from) {
-    return dumbjs_number_convert::stringify(convert_from, 10);
-}
-
-std::string String (std::nullptr_t x) {
-    // Temporary fix for how commonJS modules are transpiled
-    return std::string("undefined");
-}
-
-std::string String (std::string convert_from) {
-    return convert_from;
-}
-
-
-std::string String() { return std::string(""); }
 
 double Number(std::string convert_from) {
     if (convert_from.length() == 0) {
@@ -449,14 +491,14 @@ void clearImmediate(double opaque_handle) {
 
 // Node things
 struct Env {
-    std::string operator [] (std::string variable) {
+    String operator [] (String variable) {
         try {
-            return std::getenv(variable.c_str());
+            return std::getenv(std::string(variable).c_str());
         } catch (std::logic_error e) {
-            return std::string("");
+            return String("");
         }
     }
-    std::string setenv (std::string variable, std::string value) {
+    String setenv (std::string variable, std::string value) {
         ::setenv(variable.c_str(), value.c_str(), value.length());
         return value;
     }
@@ -464,7 +506,7 @@ struct Env {
 
 struct Process {
     Env env;
-    Array<std::string> * argv;
+    Array<String> * argv;
     void nextTick(auto func) {
         setImmediate(func);  /* Handle remains hidden */
     }
@@ -476,15 +518,15 @@ struct Process {
 Process process;
 
 void js2cpp_init_argv(int argc, char* argv[]) {
-    process.argv = new Array<std::string>();
+    process.argv = new Array<String>();
     // Put something in process.argv[0], so that the user's application may be the second argument.
     // since node scripts expect their arguments to start with the node runtime and then just read arguments from argv[2] on
     // that means something has to be here.
     //
     // TODO in the future create js2cpp-node command so it may be the first argument,
     // and the javascript file that generated the program, the second argument.
-    process.argv->push(std::string("/usr/bin/env"));
+    process.argv->push(String("/usr/bin/env"));
     for (int i = 0; i < argc; i++) {
-        process.argv->push(std::string(argv[i]));
+        process.argv->push(String(argv[i]));
     }
 }
