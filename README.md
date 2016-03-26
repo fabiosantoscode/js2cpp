@@ -4,7 +4,7 @@
 
 It's the product of the crazy idea of using the very excellent tern.js project to figure out the types of things and use them!
 
-js2cpp should be usable some day. For now you can do crazy experiments on it :)
+js2cpp doesn't have a garbage collector yet. But it is usable and can run some JavaScript code as is!
 
 # How can I use it?
 
@@ -35,15 +35,26 @@ Here is tern.js figuring out a couple of types.
     double aNumber = 1;
     std::string aString = std::string("1");
 
-# How do I run this?
+# How do I run this? (Usage)
 
- * First, you need to update your compiler to a version that supports C++14. If you're using gcc, make sure you have g++ 5. Get it from brew or linuxbrew, don't ruin your machine by adding another compiler globally! I've been there.
+```
+ ~ ♥  bin/js2cpp -h
+Usage: js2cpp --run (run javascript from stdin)
+Usage: js2cpp --run filename.js
+Usage: js2cpp (compile from stdin)
+Usage: js2cpp filename.js (compile)
+
+environment variables:
+ ~ $ RUN_VALGRIND=1 js2cpp --run ...    - Run the compiled program with `valgrind`
+ ~ $ GPP_BINARY=/path/to/g++ js2cpp ... - Select what g++ binary to use (defaults to `g++`)
+```
+
+ * First, you need to update your compiler to a version that supports C++14. If you're using gcc, make sure you have g++ 5 (run `g++ -v` if you're not sure). Get it from brew or linuxbrew, don't ruin your machine by adding another compiler globally! I've been there.
  * Then, clone this repo and run `npm install`
- * Afterwards, you need to fetch and compile libuv. run `bash scripts/get-libuv.sh`. This *seems* to run on linux machines. If not, clone libuv into `deps/libuv`, compile it, and copy `libuv.a` into `deps`.
+ * Afterwards, you need to fetch and compile libuv. run `bash scripts/get-libuv.sh`. This script seems to run okay on linux machines. If not, clone libuv into `deps/libuv`, compile it, and copy `libuv.a` into `deps`.
  * Optionally `npm test` just to make sure it works on your machine ;) If it doesn't please make an issue about it and I'll try to look into it. It tries to use the `g++` binary from your PATH. If you want to use another binary specify it with the `GPP_BINARY` environment variable, like so: `GPP_BINARY=g++-5 npm test`.
  * To compile some javascript, run `./bin/js2cpp < your-javascript.js > your-cee-plus-plus.cpp`.
- * Then compile your cpp file. (example with g++) `g++ -std=c++14 your-cee-plus-plus.cpp -Wall -Werror -O3 -I include/ -lrt`
- * Then run `./a.out` to run your program.
+ * To run it, run `./bin/js2cpp --run your-javascript.js`, or `./bin/js2cpp --run`, type in javascript, then press ^D when you're done. The `GPP_BINARY` variable also applies here.
 
 # Dumbjs
 
@@ -77,7 +88,7 @@ var main = function () {
 
 Its features are closure simulation, main-ification (put stuff in a main() function), function de-nesting, and more will come.
 
-Since all of it is a much simpler form of javascript, it takes off a huge weight off the shoulders of js2cpp and makes sure its code remains (somewhat) understandable by not mixing up concerns.
+Since all of it is a much simpler form of javascript, it takes a huge weight off the shoulders of js2cpp and makes sure its code remains (somewhat) understandable by not mixing up concerns.
 
 This also means that you can use dumbjs to transpile javascript to other languages. Most of its features are switchable, because not every transpilation target language will need you to do things like wrapping things in a main() function or simulating closures.
 
@@ -94,8 +105,10 @@ All of the following features may be implemented in dumbjs, in this project, or 
 
  - Plug in the [http://www.hboehm.info/gc/](Boehm-Demers-Weiser conservative garbage collector) (which works in C and C++, it seems!)
  - Rewrite this and dumbjs in pure javascript
+ - Implement `arguments` and `this`
+ - Import the most common modules from node core (mostly depends on the above), rewrite parts of them in C++ if necessary.
  - Implement promises
- - Implement boxed types, for those variables which can have 2 types
+ - Implement boxed types, for those variables which can have 2 or more types
  - Implement `JSON.parse()` and `JSON.stringify()` (depends on the above)
  - Implement libuv bindings and shim, fake and steal node's IO APIs
  - Implement ES5-style classes (possibly by turning them into ES6-style classes first)
