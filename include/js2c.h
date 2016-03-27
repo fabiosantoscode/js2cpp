@@ -10,8 +10,8 @@
 #include <iomanip>
 #include <initializer_list>
 #include "uv.h"
+#define Infinity INFINITY
 #define NaN NAN
-#define isNaN isnan
 // Temporary fix for how dumbjs transpiles commonJS modules.
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
@@ -258,6 +258,10 @@ struct String {
         ret->push(this_split);
         return ret;
     }
+
+    static std::string get_std_string(const String& s) {
+        return s.string_data;
+    }
 };
 
 
@@ -289,11 +293,15 @@ double Number(std::string convert_from) {
     if (convert_from.length() == 0) {
         return 0;
     }
-    if (convert_from[0] == ' ') {
-        return Number(convert_from.substr(1));
+    if (convert_from == "Infinity") {
+        return INFINITY;
     }
+    if (convert_from == "-Infinity") {
+        return -INFINITY;
+    }
+    std::string to_parse = convert_from;
+    int radix = 10;
     if (convert_from[0] == '0' && convert_from.length() >= 2) {
-        int radix;
         int prefix_length;
         switch (convert_from[1]) {
             case 'x':
@@ -316,14 +324,42 @@ double Number(std::string convert_from) {
                 prefix_length = 1;
             break;
         }
-        return dumbjs_number_convert::parse(convert_from.substr(prefix_length), radix);
+        to_parse = convert_from.substr(prefix_length);
     }
-    return strtod(convert_from.c_str(), NULL);
+    for (int i = 0;
+            i < to_parse.length();
+            i++) {
+        int c = to_parse[i];
+        if (
+            !(
+                (radix >= 10 && c >= '0' && c <= '9') ||
+                (radix == 8  && c >= '0' && c <= '7') ||
+                (radix == 2  && c >= '0' && c <= '1') ||
+                (radix == 16 && c >= 'a' && c <= 'f') ||
+                (radix == 16 && c >= 'A' && c <= 'F') ||
+                (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f')
+            )
+        ) {
+            return NaN;
+        }
+    }
+    if (radix != 10) {
+        return dumbjs_number_convert::parse(to_parse, radix);
+    }
+    return strtod(to_parse.c_str(), NULL);
 }
 
+double Number(String convert_from) {
+    return Number(String::get_std_string(convert_from));
+}
+double Number(nullptr_t) { return 0; }
 double Number() { return 0; }
-
 double Number(double n) { return n; }
+
+bool isNaN(auto n) { return isnan(Number(n)); }
+bool isNaN(double n) { return isnan(n); }
+bool isNaN(nullptr_t) { return true; }
+bool isNaN() { return true; }
 
 struct Math_ {
     public:
@@ -441,12 +477,14 @@ struct Console {
         return s;
     }
     static std::string representation(double n) {
-        if (n == (int) n) {
+        if (n == (int) n)
             return std::to_string((int) n);
-        }
-        if (isnan(n)) {
+        if (isnan(n))
             return std::string("NaN");
-        }
+        if (n == Infinity)
+            return std::string("Infinity");
+        if (n == -Infinity)
+            return std::string("-Infinity");
         return std::to_string(n);  // Cuts to 6 zeroes, just like node does when printing to the console
     }
     static std::string representation(int boolean_value) {

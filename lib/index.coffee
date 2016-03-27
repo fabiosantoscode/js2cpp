@@ -79,6 +79,11 @@ global.to_put_before = undefined
 module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} } = {}) ->
     dumbJsOptions = underscore.defaults(dumbJsOptions, {
         mainify: {},
+        typeConversions: {},
+    })
+
+    dumbJsOptions.typeConversions = underscore.defaults(dumbJsOptions.typeConversions, {
+        avoidJSAdd: true,
     })
 
     dumbJsOptions.mainify = underscore.defaults(dumbJsOptions.mainify, {

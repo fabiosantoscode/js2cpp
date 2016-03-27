@@ -96,6 +96,10 @@ describe 'js2cpp', () ->
       console.log('Math.random() <= 1 && Math.random() >= 0', Math.random() <= 1 && Math.random() >= 0)
       console.log('NaN', NaN)
       console.log('isNaN(NaN)', isNaN(NaN))
+      console.log('isNaN(10)', isNaN(10))
+      console.log('isNaN("10")', isNaN("10"))
+      console.log('isNaN("10NaN")', isNaN("10NaN"))
+      console.log('isNaN("lel")', isNaN("lel"))
       console.log('FOO=bar', process.env['FOO'] = 'bar')
       console.log('process.env[\\'FOO\\']', process.env['FOO'])
       console.log('process.env.FOO', process.env.FOO)
@@ -226,6 +230,10 @@ describe 'js2cpp', () ->
       Math.random() <= 1 && Math.random() >= 0 true
       NaN NaN
       isNaN(NaN) true
+      isNaN(10) false
+      isNaN("10") false
+      isNaN("10NaN") true
+      isNaN("lel") true
       FOO=bar bar
       process.env['FOO'] bar
       process.env.FOO bar
