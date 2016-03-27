@@ -6,8 +6,6 @@
 #include <cstdlib>
 #include <map>
 #include <functional>
-#include <algorithm>
-#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <initializer_list>
