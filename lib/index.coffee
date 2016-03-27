@@ -125,7 +125,6 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
         pseudo_c_ast = format ast
         before_c = """
         #include "js2c.h"
-        #include <string>
         \n
         """
         before_c += get_fake_classes().map(({ name }) -> 'struct ' + name + ';').join('\n') + '\n\n'

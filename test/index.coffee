@@ -173,6 +173,27 @@ describe 'js2cpp', () ->
       var why = ex;
       why += '1';
       console.log('x, y', ex, why)
+      console.log('"1".charAt(0)', "1".charAt(0))
+      console.log('"1".charAt(1)', "1".charAt(1))
+      console.log('"1".charAt(-1)', "1".charAt(-1))
+      console.log('"".split()', "".split())
+      console.log('"".split("")', "".split(""))
+      console.log('"".split("a")', "".split("a"))
+      console.log('"abc".split("")', "abc".split(""))
+      console.log('"some thing".split(" ")', "some thing".split(" "))
+      console.log('"some thing".split(" thin")', "some thing".split(" thin"))
+      console.log('"some thing".split(" thing")', "some thing".split(" thing"))
+      console.log('"1".split(1)', "1".split(1))
+      console.log('"1 1 1".split(1, 2)', "1 1 1".split(1, 2))
+      console.log('"one".concat("two")', "one".concat("two"))
+      console.log('"one".concat(2)', "one".concat(2))
+      console.log('"lel".substring(1)', "lel".substring(1))
+      console.log('"lel".substring(1, 2)', "lel".substring(1, 2))
+      console.log('"lel".substring(2, 1)', "lel".substring(2, 1))
+      console.log('"lel".substr(1)', "lel".substr(1))
+      console.log('"lel".substr(-1)', "lel".substr(-1))
+      console.log('"lel".substr(1, 1)', "lel".substr(1, 1))
+      console.log('"lel".substr(-1, 1)', "lel".substr(-1, 1))
       '''
 
     expected_result =
@@ -255,6 +276,27 @@ describe 'js2cpp', () ->
       --- immutable strings
 
       x, y lel lel1
+      "1".charAt(0) 1
+      "1".charAt(1) 
+      "1".charAt(-1) 
+      "".split() [ '' ]
+      "".split("") []
+      "".split("a") [ '' ]
+      "abc".split("") [ 'a', 'b', 'c' ]
+      "some thing".split(" ") [ 'some', 'thing' ]
+      "some thing".split(" thin") [ 'some', 'g' ]
+      "some thing".split(" thing") [ 'some', '' ]
+      "1".split(1) [ '', '' ]
+      "1 1 1".split(1, 2) [ '', ' ' ]
+      "one".concat("two") onetwo
+      "one".concat(2) one2
+      "lel".substring(1) el
+      "lel".substring(1, 2) e
+      "lel".substring(2, 1) e
+      "lel".substr(1) el
+      "lel".substr(-1) l
+      "lel".substr(1, 1) e
+      "lel".substr(-1, 1) l
       ''' + '\n'
 
     ok.equal(eval(

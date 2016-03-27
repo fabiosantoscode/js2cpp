@@ -20,6 +20,15 @@ format = (ast) ->
             if formatters.hasOwnProperty node.type
                 formatters[node.type](node, parent)
 
+is_pointer_type = (name, type) ->
+    if name in standard_library_objects
+        return false
+    if type instanceof tern.Arr
+        return true
+    if type is tern.cx().str
+        return false
+    return true
+
 # Some formatters
 formatters =
     UnaryExpression: (node) ->
@@ -35,13 +44,13 @@ formatters =
             return RAW_C "typeof(#{gen format arg})", { original: node }
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
-        if obj in standard_library_objects
-            return RAW_C obj + '.' + prop, { original: node }
         if node.computed
             needs_deref = get_type(node.object) instanceof tern.Arr
             if needs_deref
                 obj = "(*#{obj})"
             return RAW_C "#{obj}[#{prop}]", { original: node }
+        if not is_pointer_type(obj, get_type(node.object, false))
+            return RAW_C obj + '.' + prop, { original: node }
         return RAW_C obj + '->' + prop, { original: node }
     CallExpression: (node) ->
         if node.callee.name is 'BIND'

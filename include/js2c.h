@@ -18,8 +18,6 @@
 // Should be done when there is an Undefinable<T> type.
 #define undefined nullptr
 
-template<typename T>
-struct Array;
 struct Console;
 
 namespace dumbjs_number_convert {
@@ -39,6 +37,76 @@ namespace dumbjs_number_convert {
     }
 };
 
+template<typename T>
+struct Array {
+    friend Console;
+    private:
+    std::vector<T> vec;
+    template<typename... Args>
+    void from_arg_pack(T first, Args... rest) {
+        from_arg_pack(first);
+        from_arg_pack(rest...);
+    }
+    void from_arg_pack(T only) {
+        push(only);
+    }
+    public:
+    double length;
+    Array() {
+        vec = std::vector<T>();
+        length = 0;
+    }
+    Array(std::initializer_list<T> init) {
+        vec = std::vector<T>();
+        length = 0;
+        for (auto iter = init.begin();
+                iter != init.end();
+                iter++) {
+            push(*iter);
+        }
+    }
+    Array(std::vector<T> & some_vec) {
+        vec = some_vec;
+        length = vec.size();
+    }
+    template<typename... Args>
+    Array(Args... args) {
+        length = 0;
+        vec = std::vector<T>();
+        from_arg_pack(args...);
+    }
+    T operator[] (double index) {
+        int ind = index;
+        if (ind < 0 || ind >= vec.size()) {
+            return T();
+        }
+        return vec[ind];
+    }
+    double push(T value) {
+        vec.push_back(value);
+        length += 1;
+        return length;
+    }
+    T pop() {
+        length -= 1;
+        T last_value = vec[length];
+        vec.pop_back();
+        return last_value;
+    }
+    double unshift(T value) {
+        length += 1;
+        vec.insert(vec.begin(), value);
+        return length;
+    }
+    double indexOf(T needle) {
+        for (int i = 0; i < vec.size(); i++) {
+            if (vec[i] == needle) {
+                return i;
+            }
+        }
+        return -1;
+    }
+};
 
 struct String {
     friend Console;
@@ -95,6 +163,10 @@ struct String {
         return string_data == other;
     }
 
+    bool operator != (const std::string &other) const {
+        return string_data != other;
+    }
+
     template<typename T>
     String(Array<T> *ary) {
         std::string s("");
@@ -106,6 +178,88 @@ struct String {
         }
         set_string_data(s);
     }
+
+    String charAt(int index) const {
+        if (index > length || index < 0) { return ""; }
+        return this[index];
+    }
+    String substring(int indexStart, int indexEnd) const {
+        std::string ret = "";
+        if (indexStart < 0 || isnan(indexStart)) indexStart = 0;
+        if (indexEnd < 0 || isnan(indexEnd)) indexEnd = 0;
+        if (indexStart > length) indexStart = length;
+        if (indexEnd > length) indexEnd = length;
+        if (indexStart > indexEnd) {
+            std::swap(indexStart, indexEnd);
+        }
+        for (int i = indexStart; i < indexEnd; i++)
+            ret += string_data[i];
+        return ret;
+    }
+    String substring(int indexStart) const {
+        return substring(indexStart, length);
+    }
+    String substr(int indexStart, int len) const {
+        if (indexStart < 0) { indexStart += length; }
+        if (len < 0) { return String(""); }
+        return substring(indexStart, indexStart + len);
+    }
+    String substr(int indexStart) const {
+        return substr(indexStart, length - indexStart);
+    }
+    String concat(const String &other) const {
+        return string_data + other.string_data;
+    }
+    Array<String> * split() const {
+        return new Array<String>({ String(*this) });
+    }
+    Array<String> * split(const String &split_by, int limit = -1) const {
+        auto ret = new Array<String>();
+        if (split_by.length > length) {
+            if (limit == 0) { return ret; }
+            ret->push(*this);
+            return ret;
+        }
+        if (split_by.length == 0) {
+            std::string this_string = "";
+            for (int i = 0; i < length; i++) {
+                this_string += string_data[i];
+                if (limit >= 0 && ret->length >= limit) { return ret; }
+                ret->push(this_string);
+                this_string = "";
+            }
+            return ret;
+        }
+        int match_i = 0;
+        int i = 0;
+        bool matching_substring = false;
+        std::string this_split = "";
+        while (i < length) {
+            if (matching_substring == false) {
+                if (split_by.string_data[0] == string_data[i]) {
+                    matching_substring = true;
+                    match_i = 1;
+                    ret->push(this_split);
+                    if (limit >= 0 && ret->length >= limit) { return ret; }
+                    this_split = "";
+                } else {
+                    this_split += string_data[i];
+                }
+            } else {
+                if (split_by.string_data[match_i] != string_data[i]) {
+                    matching_substring = false;
+                    this_split = "";
+                    this_split += string_data[i];
+                } else {
+                    ;  // Consume string
+                }
+                match_i++;
+            }
+            i++;
+        }
+        ret->push(this_split);
+        return ret;
+    }
 };
 
 
@@ -114,73 +268,6 @@ String typeof(int _) { return "number"; }
 String typeof(String _) { return "string"; }
 String typeof(std::function<void(void)>) { return "function"; }
 String typeof(void* ptr) { return ptr != undefined ? "object" : "undefined"; }
-
-template<typename T>
-struct Array {
-    friend Console;
-    private:
-    std::vector<T> vec;
-    template<typename... Args>
-    void from_arg_pack(T first, Args... rest) {
-        from_arg_pack(first);
-        from_arg_pack(rest...);
-    }
-    void from_arg_pack(T only) {
-        push(only);
-    }
-    public:
-    double length;
-    Array() {
-        vec = std::vector<T>();
-        length = 0;
-    }
-    Array(std::initializer_list<T> init) {
-        vec = std::vector<T>();
-        length = 0;
-        for (auto iter = init.begin();
-                iter != init.end();
-                iter++) {
-            push(*iter);
-        }
-    }
-    template<typename... Args>
-    Array(Args... args) {
-        length = 0;
-        vec = std::vector<T>();
-        from_arg_pack(args...);
-    }
-    T operator[] (double index) {
-        int ind = index;
-        if (ind < 0 || ind >= vec.size()) {
-            return T();
-        }
-        return vec[ind];
-    }
-    double push(T value) {
-        vec.push_back(value);
-        length += 1;
-        return length;
-    }
-    T pop() {
-        length -= 1;
-        T last_value = vec[length];
-        vec.pop_back();
-        return last_value;
-    }
-    double unshift(T value) {
-        length += 1;
-        vec.insert(vec.begin(), value);
-        return length;
-    }
-    double indexOf(T needle) {
-        for (int i = 0; i < vec.size(); i++) {
-            if (vec[i] == needle) {
-                return i;
-            }
-        }
-        return -1;
-    }
-};
 
 template<typename TKey, typename TVal>
 struct Map {
@@ -324,6 +411,9 @@ struct Console {
     }
     template<typename T>
     static std::string representation(Array<T> only) {
+        if (only.length == 0) {
+            return "[]";
+        }
         std::string s("[ ");
         for (auto iter = only.vec.begin();
                 iter != only.vec.end();
@@ -378,9 +468,6 @@ struct Console {
     static std::string representation(std::function<void(void)>any) {
         return std::string("[Function]");
     }
-    static std::string long_representation(auto whatever) {
-        return representation(whatever);
-    }
     static std::string long_representation(std::string a_string) {
         std::string out = std::string("'");
         for (auto iter = a_string.begin();
@@ -400,6 +487,12 @@ struct Console {
         }
         out += std::string("'");
         return out;
+    }
+    static std::string long_representation(String the_string) {
+        return long_representation(std::string(the_string));
+    }
+    static std::string long_representation(auto whatever) {
+        return representation(whatever);
     }
     public:
     template<typename T>
