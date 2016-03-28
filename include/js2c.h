@@ -143,9 +143,7 @@ struct String {
     }
 
     String operator[] (int index) const {
-        std::string ret = "";
-        ret += string_data[index];
-        return ret;
+        return charAt(index);
     }
 
     String operator+ (const std::string &other) const {
@@ -178,8 +176,8 @@ struct String {
     }
 
     String charAt(int index) const {
-        if (index > length || index < 0) { return ""; }
-        return this[index];
+        if (index < 0 || index >= length) { return String(""); }
+        return substring(index, index + 1);
     }
     String substring(int indexStart, int indexEnd) const {
         std::string ret = "";

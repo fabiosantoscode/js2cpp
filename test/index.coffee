@@ -22,6 +22,7 @@ output_of = (program) ->
     '-lpthread',
     'deps/libuv.a',
     '-O0',
+    '-g',
     '-o /tmp/js2ctests.out',
   ].join ' ')
   return ''+sh '/tmp/js2ctests.out'
