@@ -48,6 +48,7 @@ struct Array {
     void from_arg_pack(T only) {
         push(only);
     }
+    void from_arg_pack() { }
     public:
     double length;
     Array() {
@@ -95,6 +96,16 @@ struct Array {
         length += 1;
         vec.insert(vec.begin(), value);
         return length;
+    }
+    Array<T> * concat(Array<T> * other) {
+        Array<T> *ret = new Array<T>();
+        for (int i = 0; i < vec.size(); i++) {
+            ret->push(vec[i]);
+        }
+        for (int i = 0; i < other->vec.size(); i++) {
+            ret->push(other->vec[i]);
+        }
+        return ret;
     }
     double indexOf(T needle) {
         for (int i = 0; i < vec.size(); i++) {
