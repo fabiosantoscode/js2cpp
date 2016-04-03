@@ -14,8 +14,8 @@ cli = (inpt, outp = null, cb) ->
                 outp.write cpp_code + '\n'
             return cpp_code
 
-cli.sync = (inpt) ->
-    return js2cpp inpt
+cli.sync = (inpt, options) ->
+    return js2cpp inpt, options
 
 cli.run = (inpt, run_args) ->
     binary_path = process.cwd() + '/a.out'

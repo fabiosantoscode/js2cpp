@@ -6,11 +6,11 @@ dumbjs = require 'dumbjs'
 cli = require '../lib/cli'
 bindifyPrelude = require 'dumbjs/lib/bindify-prelude'
 
-transpile = (program) ->
-  return fs.writeFileSync('/tmp/js2ctests.cpp', cli.sync(program))
+transpile = (program, options) ->
+  return fs.writeFileSync('/tmp/js2ctests.cpp', cli.sync(program, options))
 
-output_of = (program) ->
-  transpile program
+output_of = (program, options) ->
+  transpile program, options
   sh([
     process.env['GPP_BINARY'] or 'g++',
     '-std=c++14',
