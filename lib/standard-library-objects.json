@@ -1,5 +1,6 @@
 [
     "console",
     "process",
+    "process.env",
     "Math"
 ]

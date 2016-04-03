@@ -45,8 +45,7 @@ formatters =
     MemberExpression: (node) ->
         [obj, prop] = [gen(format(node.object)), gen(format(node.property))]
         if node.computed
-            needs_deref = get_type(node.object) instanceof tern.Arr
-            if needs_deref
+            if is_pointer_type(obj, get_type(node.object, false))
                 obj = "(*#{obj})"
             return RAW_C "#{obj}[#{prop}]", { original: node }
         if not is_pointer_type(obj, get_type(node.object, false))
