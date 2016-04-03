@@ -407,10 +407,12 @@ describe 'js2cpp', () ->
 
   describe 'jsdoc integration', () ->
     it 'allows you to create variables of unknown types', () ->
-      ok /String x/.test cli.sync('/** @type {string} **/ var x;')
+      javascript_code = cli.sync '/** @type {string} **/ var x;'
+      ok /String x/.test(javascript_code), javascript_code
 
     it 'allows you to create arrays of unknown types', () ->
-      ok /Array<double>/.test cli.sync('/** @type {number[]} **/ var x = [];')
+      javascript_code = cli.sync '/** @type {number[]} **/ var x = [];'
+      ok /Array<double>/.test(javascript_code), javascript_code
 
   it 'can use this (lite)', () ->
     javascript_code = """
