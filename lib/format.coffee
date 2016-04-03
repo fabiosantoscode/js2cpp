@@ -5,11 +5,7 @@ tern = require 'tern/lib/infer'
 standard_library_objects = require('./standard-library-objects.json')
 { gen, RAW_C } = require './gen'
 { make_fake_class } = require './fake-classes'
-
-# Dependency loop lol
-get_type = (args...) ->
-    get_type = require('./cpp-types').get_type
-    return get_type(args...)
+{ get_type } = require('./cpp-types')
 
 #############
 # Formatting (outputing) our C++!

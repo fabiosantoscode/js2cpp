@@ -1,9 +1,7 @@
 yell = require './yell'
 assert = require 'assert'
-{ gen } = require './gen'
 tern = require 'tern/lib/infer'
 estraverse = require 'estraverse'
-{ make_fake_class } = require './fake-classes'
 
 get_fn_type = (func) ->
     scope = func.scope or func.body.scope

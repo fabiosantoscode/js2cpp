@@ -1,6 +1,7 @@
 ############
 # Deal with escodegen
 
+{ get_type } = require './cpp-types'
 escodegen = require 'escodegen'
 assert = require 'assert'
 
