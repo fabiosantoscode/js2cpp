@@ -50,8 +50,8 @@ environment variables:
 ```
 
  * First, you need to update your compiler to a version that supports C++14. If you're using gcc, make sure you have g++ 5 (run `g++ -v` if you're not sure). Get it from brew or linuxbrew, don't ruin your machine by adding another compiler globally! I've been there.
+ * Install libuv globally (if it doesn't work, move it from /usr/local/lib to /usr/lib)
  * Then, clone this repo and run `npm install`
- * Afterwards, you need to fetch and compile libuv. run `bash scripts/get-libuv.sh`. This script seems to run okay on linux machines. If not, clone libuv into `deps/libuv`, compile it, and copy `libuv.a` into `deps`.
  * Optionally `npm test` just to make sure it works on your machine ;) If it doesn't please make an issue about it and I'll try to look into it. It tries to use the `g++` binary from your PATH. If you want to use another binary specify it with the `GPP_BINARY` environment variable, like so: `GPP_BINARY=g++-5 npm test`.
  * To compile some javascript, run `./bin/js2cpp < your-javascript.js > your-cee-plus-plus.cpp`.
  * To run it, run `./bin/js2cpp --run your-javascript.js`, or `./bin/js2cpp --run`, type in javascript, then press ^D when you're done. The `GPP_BINARY` variable also applies here.
