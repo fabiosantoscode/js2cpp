@@ -4,7 +4,7 @@
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "test": "mocha -t 20000 --compilers coffee:coffee-script/register"
+    "test": "mocha -t 20000 --compilers coffee:coffee-script/register --require test/prepare.coffee"
   },
   "author": "",
   "license": "WTFPL",

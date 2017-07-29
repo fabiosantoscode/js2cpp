@@ -1,14 +1,14 @@
 language: node_js
 node_js:
-  - 0.12
   - 4.3.2
+  - 7
 addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
     packages:
     - gcc-5
+    - libuv1-dev
     - g++-5
 env:
   - GPP_BINARY=g++-5
-before_script: bash scripts/get-libuv.sh
