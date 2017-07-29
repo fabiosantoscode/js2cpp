@@ -9,7 +9,7 @@ addons:
     - ubuntu-toolchain-r-test
     packages:
     - gcc-5
-    - libuv1-dev
+    - libuv-dev
     - g++-5
 env:
   - GPP_BINARY=g++-5
