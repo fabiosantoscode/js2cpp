@@ -192,8 +192,8 @@ struct String {
     }
     String substring(int indexStart, int indexEnd) const {
         std::string ret = "";
-        if (indexStart < 0 || isnan(indexStart)) indexStart = 0;
-        if (indexEnd < 0 || isnan(indexEnd)) indexEnd = 0;
+        if (indexStart < 0) indexStart = 0;
+        if (indexEnd < 0) indexEnd = 0;
         if (indexStart > length) indexStart = length;
         if (indexEnd > length) indexEnd = length;
         if (indexStart > indexEnd) {

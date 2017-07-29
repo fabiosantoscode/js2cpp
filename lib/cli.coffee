@@ -34,7 +34,7 @@ cli.run = (inpt, run_args) ->
             '-L', relative('deps'),
             '-lrt',
             '-lpthread',
-            relative('deps/libuv.a'),
+            '-luv',
             '-o', binary_path,
         ]
 

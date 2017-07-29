@@ -20,7 +20,7 @@ output_of = (program, options) ->
     '-L deps',
     '-lrt',
     '-lpthread',
-    'deps/libuv.a',
+    '-luv',
     '-O0',
     '-g',
     '-o /tmp/js2ctests.out',
