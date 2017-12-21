@@ -10,7 +10,7 @@
   "license": "WTFPL",
   "dependencies": {
     "coffee-script": "^1.10.0",
-    "dumbjs": "fabiosantoscode/dumbjs",
+    "dumbjs": "github:fabiosantoscode/dumbjs",
     "escodegen": "^1.6.1",
     "escope": "^2.0.4",
     "esprima": "^2.0.0",

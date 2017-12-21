@@ -1,3 +1,3 @@
-module.exports = function returnFoo() {
+module.exports.returnFoo = function returnFoo() {
   return 'xfoo'
 }

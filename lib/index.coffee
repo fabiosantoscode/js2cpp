@@ -99,9 +99,7 @@ module.exports = (js, { customDumbJs = dumbjs, options = {}, dumbJsOptions = {} 
             arguments: args.map((arg) -> { type: 'Identifier', name: arg }),
         }
     }
-    dumbJsOptions.mainify.prepend.push(make_global_call('js2cpp_init_libuv'))
     dumbJsOptions.mainify.prepend.push(make_global_call('js2cpp_init_argv', [ 'argc', 'argv' ]))
-    dumbJsOptions.mainify.append.push(make_global_call('js2cpp_run_libuv'))
     js = customDumbJs(js, dumbJsOptions)
 
     server = new Server({

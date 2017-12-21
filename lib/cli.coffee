@@ -30,11 +30,8 @@ cli.run = (inpt, run_args) ->
             '-'
             '-x', 'none',  # And the following files aren't c++, start autodetecting pls
             '-I', relative('include/'),
-            '-I', relative('deps/libuv/include'),
-            '-L', relative('deps'),
             '-lrt',
             '-lpthread',
-            '-luv',
             '-o', binary_path,
         ]
 

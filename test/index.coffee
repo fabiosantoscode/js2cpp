@@ -434,7 +434,7 @@ describe 'js2cpp', () ->
 
   it 'can transpile code that\'s been through the browserify machinery back in dumbjs', () ->
     javascript_code = """
-      console.log(require(#{JSON.stringify(__dirname + '/some.js')})())
+      console.log(require(#{JSON.stringify(__dirname + '/some.js')}).returnFoo())
     """
 
     expected_result = "xfoo\n"
@@ -459,75 +459,4 @@ describe 'js2cpp', () ->
 
       x()
     """)
-
-describe 'libuv integration', () ->
-  it 'calls libuv_init before code starts', () ->
-    opt = undefined
-    fake_dumbjs = (_, _opt) -> opt = _opt ; return ''
-    js2cpp '', { customDumbJs: fake_dumbjs }
-    ok.deepEqual(opt.mainify.prepend, [
-      {
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'CallExpression',
-          callee: {
-            type: 'Identifier',
-            name: 'js2cpp_init_libuv'
-          },
-          arguments: [],
-        }
-      },
-      {
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'CallExpression',
-          callee: {
-            type: 'Identifier',
-            name: 'js2cpp_init_argv'
-          },
-          arguments: [
-            { type: 'Identifier', name: 'argc' },
-            { type: 'Identifier', name: 'argv' },
-          ],
-        }
-      }
-    ])
-
-  describe 'functional tests', () ->
-    it 'timeouts', () ->
-      javascript_code = '''
-        process.nextTick(function() {
-          console.log('two');
-          clearTimeout(thatWhichShallNotBeRun);
-          setTimeout(function () {
-            console.log('three')
-            proceed()
-          }, 100)
-        })
-
-        console.log('one')
-
-        var thatWhichShallNotBeRun = setTimeout(function () {
-          console.log('fifteen!')
-        })
-
-        function proceed() {
-          var count = 3;
-          var interval = setInterval(function() {
-            console.log(count)
-            if (!--count) clearInterval(interval)
-          })
-        }
-      '''
-
-      expected_result = '''
-      one
-      two
-      three
-      3
-      2
-      1
-      ''' + '\n'
-
-      ok.equal(output_of(javascript_code), expected_result)
 
