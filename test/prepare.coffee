@@ -14,7 +14,7 @@ global.output_of = (program, options) ->
   transpile program, options
   sh([
     process.env['GPP_BINARY'] or 'g++',
-    '-std=c++11',
+    '-std=c++14',
     '/tmp/js2ctests.cpp',
     '-I include/',
     '-lrt',
