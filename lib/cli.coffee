@@ -25,6 +25,7 @@ cli.run = (inpt, run_args) ->
 
         relative = (pt) -> path.join(__dirname, '..', pt)
         args = [
+            '-std=c++14',
             '-x', 'c++',  # Take an input c++ file as STDIN
             '-'
             '-x', 'none',  # And the following files aren't c++, start autodetecting pls
