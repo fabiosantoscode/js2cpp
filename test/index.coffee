@@ -270,7 +270,7 @@ describe 'js2cpp', () ->
 
     ok.equal(output_of(javascript_code), expected_result)
 
-  describe 'functions that take `auto`', () ->
+  describe.skip 'functions that take `auto`', () ->
     it 'Can be generated', () ->
       javascript_code = """
         function x(a) {
