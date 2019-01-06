@@ -18,11 +18,11 @@ Yeah, it actually does some things. This is how js2cpp handles strings:
 
 And here's console.log!
 
-    $ echo 'console.log(1,2,3)' | bin/js2cpp
+    $ echo 'console.log(1, 2, "3")' | bin/js2cpp
     #include "js2c.h"
     #include <string>
     
-    console.log(1, 2, 3);
+    console.log(1, 2, String("3"));
 
 It works because there's a "console" instance of a "Console" class with a variadic "log" function.
 
@@ -49,7 +49,7 @@ environment variables:
  ~ $ GPP_BINARY=/path/to/g++ js2cpp ... - Select what g++ binary to use (defaults to `g++`)
 ```
 
- * First, you need to update your compiler to a version that supports C++14. If you're using gcc, make sure you have g++ 5 (run `g++ -v` if you're not sure). Get it from brew or linuxbrew, don't ruin your machine by adding another compiler globally! I've been there.
+ * First, you need to update your compiler to a version that supports C++14. Your system probably already has this. If not, install linuxbrew or homebrew and just run `brew install gcc`
  * Then, clone this repo and run `npm install`
  * Optionally `npm test` just to make sure it works on your machine ;) If it doesn't please make an issue about it and I'll try to look into it. It tries to use the `g++` binary from your PATH. If you want to use another binary specify it with the `GPP_BINARY` environment variable, like so: `GPP_BINARY=g++-5 npm test`.
  * To compile some javascript, run `./bin/js2cpp < your-javascript.js > your-cee-plus-plus.cpp`.
