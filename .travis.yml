@@ -5,9 +5,7 @@ node_js:
 cache:
   directories:
     - node_modules
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - libuv-dev
+before_install:
+  - export HOMEBREW_FORCE_VENDOR_RUBY=1
+  - sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+  - brew install libuv-dev gcc
