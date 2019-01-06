@@ -102,7 +102,7 @@ This means that, like a lot of npm modules which accidentally work in the browse
 
 All of the following features may be implemented in dumbjs, in this project, or in both at the same time, depending on whether they apply to each project.
 
- - Plug in the [http://www.hboehm.info/gc/](Boehm-Demers-Weiser conservative garbage collector) (which works in C and C++, it seems!)
+ - Plug in the [Boehm-Demers-Weiser conservative garbage collector](http://www.hboehm.info/gc/) (which works in C and C++, it seems!)
  - Rewrite this and dumbjs in pure javascript
  - Implement `arguments` and `this`
  - Import the most common modules from node core (mostly depends on the above), rewrite parts of them in C++ if necessary.
