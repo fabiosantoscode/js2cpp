@@ -8,10 +8,6 @@ cache:
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
     packages:
-    - gcc-5
-    - libuv-dev
-    - g++-5
-env:
-  - GPP_BINARY=g++-5
+      - libuv-dev
